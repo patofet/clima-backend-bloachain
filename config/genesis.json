@@ -1,0 +1,15 @@
+{
+  "config": {
+    "chainId": 1714,
+    "muirglacierblock": 0,
+    "berlinblock": 0,
+    "londonblock": 0
+  },
+  "alloc": {},
+  "coinbase": "0x0000000000000000000000000000000000000000",
+  "difficulty": "0x20000",
+  "gasLimit": "0x1fffffffffffff",
+  "extraData": "0x00",
+  "nonce": "0x0",
+  "timestamp": "0x00"
+}
