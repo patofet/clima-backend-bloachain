@@ -48,3 +48,6 @@ Thumbs.db
 *.mov
 *.wmv
 
+/data/validator1/
+/data/validator2/
+/data/validator3/
