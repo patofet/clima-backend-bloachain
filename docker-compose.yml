@@ -18,10 +18,12 @@ services:
       - 30303:30303  # P2P TCP
       - 30303:30303/udp  # P2P UDP
     command:
+      - "--logging=INFO"
+      - "--min-gas-price=0"
       - "--data-path=/opt/besu/data"
       - "--genesis-file=/opt/besu/genesis.json"
       - "--node-private-key-file=/opt/besu/key"
-      - "--rpc-http-enabled=true"
+      - "--rpc-http-enabled"
       - "--graphql-http-enabled"
       - "--rpc-http-host=0.0.0.0"
       - "--rpc-http-port=8545"
@@ -31,6 +33,8 @@ services:
       - "--p2p-port=30303"
       - "--host-whitelist=*"
       - "--rpc-http-cors-origins=*"
+      - "--rpc-http-api=ETH,NET,IBFT,WEB3"
+      - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
       - "--bootnodes=enode://edfe064b5c4566357655dbd5034b179f2013e138bef0cfd73f24c3889bbca1e9388494ba35ae465d1ccc0c83f4331521d23503e96d451577f7f8cdc6924c0aed@10.42.0.4:30304,enode://17640b1d69a476dc225de4d083b80630d5e7fb4995e77f8eee940d6397e9e37ba7bc9206f8be1aa3848b7a1d34cb8abb208ce34fd1b15b437d0c193e89cdede2@10.42.0.5:30305"
     networks:
       besu-network:
@@ -48,23 +52,18 @@ services:
       - ./data/validator2/data:/opt/besu/data
       - ./data/validator2/config:/opt/besu/config
     ports:
-      - 8547:8545
-      - 8548:8546
       - 30304:30304
       - 30304:30304/udp
     command:
+      - "--logging=INFO"
+      - "--min-gas-price=0"
       - "--data-path=/opt/besu/data"
       - "--genesis-file=/opt/besu/genesis.json"
       - "--node-private-key-file=/opt/besu/key"
-      - "--rpc-http-enabled=true"
-      - "--graphql-http-enabled"
-      - "--rpc-http-host=0.0.0.0"
-      - "--rpc-http-port=8545"
-      - "--rpc-ws-enabled"
-      - "--rpc-ws-host=0.0.0.0"
-      - "--rpc-ws-port=8546"
       - "--p2p-port=30304"
       - "--host-whitelist=*"
+      - "--rpc-http-api=ETH,NET,IBFT,WEB3"
+      - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
       - "--rpc-http-cors-origins=*"
     networks:
       besu-network:
@@ -82,23 +81,18 @@ services:
       - ./data/validator3/data:/opt/besu/data
       - ./data/validator3/config:/opt/besu/config
     ports:
-      - 8549:8545
-      - 8550:8546
       - 30305:30305
       - 30305:30305/udp
     command:
       - "--data-path=/opt/besu/data"
+      - "--logging=INFO"
+      - "--min-gas-price=0"
       - "--genesis-file=/opt/besu/genesis.json"
       - "--node-private-key-file=/opt/besu/key"
-      - "--graphql-http-enabled"
-      - "--rpc-http-enabled=true"
-      - "--rpc-http-host=0.0.0.0"
-      - "--rpc-http-port=8545"
-      - "--rpc-ws-enabled"
-      - "--rpc-ws-host=0.0.0.0"
-      - "--rpc-ws-port=8546"
       - "--p2p-port=30305"
       - "--host-whitelist=*"
+      - "--rpc-http-api=ETH,NET,IBFT,WEB3"
+      - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
       - "--rpc-http-cors-origins=*"
     networks:
       besu-network:
