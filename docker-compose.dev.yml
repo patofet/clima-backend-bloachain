@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   # Nodo validador 1
-  alice:
+  besu-validator1:
     build:
       context: .
       dockerfile: Dockerfile
@@ -35,9 +35,13 @@ services:
       - "--rpc-http-cors-origins=*"
       - "--rpc-http-api=ETH,NET,IBFT,WEB3"
       - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
+      - "--bootnodes=enode://edfe064b5c4566357655dbd5034b179f2013e138bef0cfd73f24c3889bbca1e9388494ba35ae465d1ccc0c83f4331521d23503e96d451577f7f8cdc6924c0aed@10.42.0.4:30304,enode://17640b1d69a476dc225de4d083b80630d5e7fb4995e77f8eee940d6397e9e37ba7bc9206f8be1aa3848b7a1d34cb8abb208ce34fd1b15b437d0c193e89cdede2@10.42.0.5:30305"
+    networks:
+      besu-network:
+        ipv4_address: 10.42.0.3
 
   # Nodo validador 2
-  ben:
+  besu-validator2:
     build:
       context: .
       dockerfile: Dockerfile
@@ -48,30 +52,25 @@ services:
       - ./data/validator2/data:/opt/besu/data
       - ./data/validator2/config:/opt/besu/config
     ports:
-      - 8545:8545  # RPC HTTP
-      - 8546:8546  # RPC WebSocket
-      - 30303:30303  # P2P TCP
-      - 30303:30303/udp  # P2P UDP
+      - 30304:30304
+      - 30304:30304/udp
     command:
       - "--logging=INFO"
       - "--min-gas-price=0"
       - "--data-path=/opt/besu/data"
       - "--genesis-file=/opt/besu/genesis.json"
       - "--node-private-key-file=/opt/besu/key"
-      - "--rpc-http-enabled"
-      - "--graphql-http-enabled"
-      - "--rpc-http-host=0.0.0.0"
-      - "--rpc-http-port=8545"
-      - "--rpc-ws-enabled"
-      - "--rpc-ws-host=0.0.0.0"
-      - "--rpc-ws-port=8546"
-      - "--p2p-port=30303"
+      - "--p2p-port=30304"
       - "--host-whitelist=*"
-      - "--rpc-http-cors-origins=*"
       - "--rpc-http-api=ETH,NET,IBFT,WEB3"
       - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
+      - "--rpc-http-cors-origins=*"
+    networks:
+      besu-network:
+        ipv4_address: 10.42.0.4
 
-  charlie:
+  # Nodo validador 3
+  besu-validator3:
     build:
       context: .
       dockerfile: Dockerfile
@@ -82,25 +81,30 @@ services:
       - ./data/validator3/data:/opt/besu/data
       - ./data/validator3/config:/opt/besu/config
     ports:
-      - 8545:8545  # RPC HTTP
-      - 8546:8546  # RPC WebSocket
-      - 30303:30303  # P2P TCP
-      - 30303:30303/udp  # P2P UDP
+      - 30305:30305
+      - 30305:30305/udp
     command:
+      - "--data-path=/opt/besu/data"
       - "--logging=INFO"
       - "--min-gas-price=0"
-      - "--data-path=/opt/besu/data"
       - "--genesis-file=/opt/besu/genesis.json"
       - "--node-private-key-file=/opt/besu/key"
-      - "--rpc-http-enabled"
-      - "--graphql-http-enabled"
-      - "--rpc-http-host=0.0.0.0"
-      - "--rpc-http-port=8545"
-      - "--rpc-ws-enabled"
-      - "--rpc-ws-host=0.0.0.0"
-      - "--rpc-ws-port=8546"
-      - "--p2p-port=30303"
+      - "--p2p-port=30305"
       - "--host-whitelist=*"
-      - "--rpc-http-cors-origins=*"
       - "--rpc-http-api=ETH,NET,IBFT,WEB3"
       - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
+      - "--rpc-http-cors-origins=*"
+    networks:
+      besu-network:
+        ipv4_address: 10.42.0.5
+
+networks:
+  besu-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.42.0.0/16
+          gateway: 10.42.0.1
