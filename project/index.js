@@ -24,7 +24,7 @@ const abiCertificator = [
     "function getStringCertificateDetails(string certifiedString) public view returns (address, uint256, string)"
 ];
 
-const provider = new JsonRpcProvider("http://localhost:8545");
+const provider = new JsonRpcProvider("http://84.88.154.163:8545");
 const privateKey = "0xa06dbd15968133e7493b8aca3479afa9305b981ae3bc3be3e1bcc3895f3c0786"; // 0x220cf77b111aB04f3B2EA51A109BedEBd6a06964
 const wallet = new ethers.Wallet(privateKey, provider);
 const contracts = {
