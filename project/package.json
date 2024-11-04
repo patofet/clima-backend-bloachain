@@ -6,8 +6,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "compile": "npx hardhat compile",
-    "deploy:local": "npx hardhat run scripts/deploy.js --network localhost",
-    "deploy:prod": "npx hardhat run scripts/deploy.js --network production"
+    "deploy:local": "npx hardhat ignition deploy ignition/modules/Deploy.ts --network localhost",
+    "deploy:prod": "npx hardhat ignition deploy ignition/modules/Deploy.ts --network production"
   },
   "keywords": [],
   "author": "",
