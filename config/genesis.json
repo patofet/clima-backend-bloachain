@@ -8,6 +8,13 @@
       "blockperiodseconds": 2,
       "epochlength": 30000,
       "requesttimeoutseconds": 4
+    },
+    "discovery": {
+      "bootnodes": [
+        "enode://edfe064b5c4566357655dbd5034b179f2013e138bef0cfd73f24c3889bbca1e9388494ba35ae465d1ccc0c83f4331521d23503e96d451577f7f8cdc6924c0aed@84.88.154.163:30303",
+        "enode://c2822cd2ae9944d599eea604ee027cc2eb8fd53bb3641d6c2ed9f056adf67088a4e986b51f130eefed8e771958b62a3980e6b591ffc93a0eb4916d2c8c13afe7@84.88.154.252:30303",
+        "enode://17640b1d69a476dc225de4d083b80630d5e7fb4995e77f8eee940d6397e9e37ba7bc9206f8be1aa3848b7a1d34cb8abb208ce34fd1b15b437d0c193e89cdede2@84.88.154.219:30303"
+      ]
     }
   },
   "nonce": "0x0",
