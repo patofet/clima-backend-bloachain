@@ -109,7 +109,12 @@ app.get('/certification/getCertificateDetails/:hash', async (req, res) => {
 
     try {
         const details = await contracts.certification.getCertificateDetails(hash);
-        res.json({ hash, details });
+        res.json({
+            hash,
+            certifier: details[0],
+            timestamp: details[1].toString(), // Serializar BigInt a string
+            description: details[2]
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -119,7 +124,12 @@ app.get('/certification/getStringCertificateDetails/:certifiedString', async (re
 
     try {
         const details = await contracts.certification.getStringCertificateDetails(certifiedString);
-        res.json({ certifiedString, details });
+        res.json({
+            certifiedString,
+            certifier: details[0],
+            timestamp: details[1].toString(), // Serializar BigInt a string
+            description: details[2]
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
