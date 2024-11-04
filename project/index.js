@@ -127,5 +127,11 @@ app.get('/certification/getStringCertificateDetails/:certifiedString', async (re
 
 // Iniciar el servidor
 app.listen(PORT, () => {
+    console.log('Available Endpoints:');
+    app._router.stack.forEach((middleware) => {
+        if (middleware.route) { // Es un endpoint
+            console.log(`${Object.keys(middleware.route.methods)[0].toUpperCase()} ${middleware.route.path}`);
+        }
+    });
     console.log(`API running on port ${PORT}`);
 });
