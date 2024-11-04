@@ -13,7 +13,7 @@ const config: HardhatUserConfig = {
       gas: 0x1ffffffffffffe,
       accounts: ['0xa6111af4d1068a00cdf96abf12f2540bcf531deb3aaae211232059a9c704757e'],
     },
-    prod: {
+    production: {
       chainId: 1714,
       forking: {
         url: "http://84.88.154.163:8545",
