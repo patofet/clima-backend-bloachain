@@ -1,5 +1,5 @@
 # Utilizar la imagen oficial de Hyperledger Besu
-FROM hyperledger/besu:24.9.1
+FROM hyperledger/besu:24.10.0
 
 ARG PKEY=./config/pkey
 
