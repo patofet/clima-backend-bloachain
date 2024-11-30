@@ -1,6 +1,7 @@
 // routes/certificationRoutes.js
 const express = require('express');
 const { initCertificationContract } = require('../contracts/certification');
+const authenticate = require('../middleware/authMiddleware');
 
 // Inicialización del contrato
 const certificationContract = initCertificationContract();
@@ -8,10 +9,11 @@ const certificationContract = initCertificationContract();
 const router = express.Router();
 
 // Rutas
-router.post('/certify', async (req, res) => {
+router.post('/certify', authenticate, async (req, res) => {
     const { certifiedString, description } = req.body;
+    const { address, timestamp, message } =  req.authentication;
     try {
-        const tx = await certificationContract.certify(certifiedString, description);
+        const tx = await certificationContract.certify(certifiedString, description, address, message, timestamp);
         const receipt = await tx.wait(); // Espera la confirmación
         res.json({
             message: `Cadena certificada con éxito: ${certifiedString}`,
@@ -39,10 +41,17 @@ router.get('/getCertificateDetails/:data', async (req, res) => {
     try {
         const details = await certificationContract.getCertificateDetails(data);
         res.json({
-            data,
-            certifier: details[0],
-            timestamp: details[1].toString(), // Convierte BigInt a string
-            description: details[2]
+            dataCertified: data,
+            description: details[5],
+            certificate:{
+                certifier: details[0],
+                timestamp: details[4].toString()
+            },
+            proof:{
+                requester: details[1],
+                signature: details[2],
+                timestamp: details[3].toString()
+            }
         });
     } catch (error) {
         console.error(error);

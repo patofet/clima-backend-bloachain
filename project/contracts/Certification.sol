@@ -2,28 +2,100 @@
 pragma solidity ^0.8.0;
 
 contract Certification {
-    struct Certificate {
-        address certifier;
-        uint256 timestamp;
-        string description;
+    struct Proof {
+        string signature; // Firma proporcionada por el usuario autenticado
+        uint256 timestamp; // Marca de tiempo en la que se generó la prueba
     }
-    mapping(bytes32 => Certificate) public certificates;
-    mapping(string => Certificate) public stringCertificates;
 
-    event CertificateIssued(bytes32 indexed hash, address indexed certifier, uint256 timestamp, string description);
-    event StringCertificateIssued(string indexed certifiedString, address indexed certifier, uint256 timestamp, string description);
+    struct Certificate {
+        address certifier; // Dirección del certificador (msg.sender)
+        address requester; // Usuario autenticado que pidió la certificación
+        Proof proof;       // Prueba de autenticación
+        uint256 timestamp; // Marca de tiempo de la certificación
+        string description; // Descripción de la certificación
+    }
 
-    function certify(string memory certifiedString, string memory description) public {
-        require(stringCertificates[certifiedString].timestamp == 0, "Esta cadena ya ha sido certificada.");
-        stringCertificates[certifiedString] = Certificate(msg.sender, block.timestamp, description);
-        emit StringCertificateIssued(certifiedString, msg.sender, block.timestamp, description);
+    mapping(string => Certificate) private certificates;
+
+    event StringCertificateIssued(
+        string indexed certifiedData,
+        address indexed certifier,
+        address indexed requester,
+        uint256 timestamp,
+        string description,
+        string proofSignature,
+        uint256 proofTimestamp
+    );
+
+    event StringCertificateRevoked(
+        string indexed certifiedData,
+        address indexed certifier,
+        address indexed requester,
+        uint256 timestamp
+    );
+    function certify(
+        string memory certifiedData,
+        string memory description,
+        address requester,
+        string memory proofSignature,
+        uint256 proofTimestamp
+    ) public {
+        require(certificates[certifiedData].timestamp == 0, "Esta cadena ya ha sido certificada.");
+
+        // Almacena la certificación
+        certificates[certifiedData] = Certificate(
+            msg.sender,       // Certificador
+            requester,        // Solicitante
+            Proof(proofSignature, proofTimestamp), // Prueba de autenticación
+            block.timestamp,  // Marca de tiempo
+            description       // Descripción
+        );
+
+        emit StringCertificateIssued(
+            certifiedData,
+            msg.sender,
+            requester,
+            block.timestamp,
+            description,
+            proofSignature,
+            proofTimestamp
+        );
     }
     function isCertified(string memory certifiedString) public view returns (bool) {
-        return stringCertificates[certifiedString].timestamp != 0;
+        return certificates[certifiedString].timestamp != 0;
     }
-    function getCertificateDetails(string memory certifiedString) public view returns (address, uint256, string memory) {
-        require(stringCertificates[certifiedString].timestamp != 0, "Esta cadena no ha sido certificada.");
-        Certificate memory cert = stringCertificates[certifiedString];
-        return (cert.certifier, cert.timestamp, cert.description);
+    function getCertificateDetails(string memory certifiedData)
+    public
+    view
+    returns (
+        address certifier,
+        address requester,
+        string memory proofSignature,
+        uint256 proofTimestamp,
+        uint256 certTimestamp,
+        string memory description
+    )
+    {
+        require(certificates[certifiedData].timestamp != 0, "Esta cadena no ha sido certificada.");
+        Certificate memory cert = certificates[certifiedData];
+        return (
+            cert.certifier,
+            cert.requester,
+            cert.proof.signature,
+            cert.proof.timestamp,
+            cert.timestamp,
+            cert.description
+        );
+    }
+    function revokeCertificate(string memory certifiedString) public {
+        require(certificates[certifiedString].timestamp != 0, "Esta cadena no ha sido certificada.");
+        require(certificates[certifiedString].certifier == msg.sender || certificates[certifiedString].requester == msg.sender, "No tienes permiso para revocar.");
+
+        Certificate memory cert = certificates[certifiedString];
+
+        // Elimina la certificación
+        delete certificates[certifiedString];
+
+        emit StringCertificateRevoked(certifiedString, cert.certifier, cert.requester, block.timestamp);
     }
 }
