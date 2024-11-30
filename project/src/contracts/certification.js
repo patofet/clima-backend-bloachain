@@ -1,28 +1,29 @@
 // contracts/certification.js
 const { ethers, JsonRpcProvider } = require('ethers');
-
-// ABI del contrato
-const abiCertificator = [
-    "function certify(string certifiedString, string description) public",
-    "function isCertified(string certifiedString) public view returns (bool)",
-    "function getCertificateDetails(string certifiedString) public view returns (address, uint256, string)"
-];
+const { ADDRESSES_PATH } = require('../config/constants');
+const fs = require("fs");
 
 // Función para inicializar el contrato
 const initCertificationContract = () => {
     const fs = require('fs');
-    const addressPath = 'ignition/deployments/chain-1714/deployed_addresses.json'
-    const data = JSON.parse(fs.readFileSync(addressPath, 'utf8'));
+    const addressesPath = ADDRESSES_PATH
+    const certificationInfoPath = 'artifacts/contracts/Certification.sol/Certification.json';
+    const data = JSON.parse(fs.readFileSync(addressesPath, 'utf8'));
+    const certificationInfo = JSON.parse(fs.readFileSync(certificationInfoPath, 'utf8'));
 
     const provider = new JsonRpcProvider(process.env.JSON_RPC_URL);
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
     const certificationAddress = data['DeployModule#Certification'];
+    const abiCertification = certificationInfo['abi'];
 
     if (!certificationAddress) {
         throw new Error('La dirección del contrato de certificación no se ha encontrado.');
     }
+    if (!abiCertification) {
+        throw new Error('El ABI del contrato de certificación no se ha encontrado.');
+    }
 
-    return new ethers.Contract(certificationAddress, abiCertificator, wallet);
+    return new ethers.Contract(certificationAddress, abiCertification, wallet);
 };
 
 // Exporta el contrato inicializado

@@ -5,7 +5,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 const StorageModule = buildModule("StorageModule", (m) => {
 
-  const storage = m.contract("Storage", [], {});
+  const storage = m.contract("DoubleMappingStorage", [], {});
 
   return { storage };
 });

@@ -5,15 +5,11 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 const DeployModule = buildModule("DeployModule", (m) => {
 
-  const lock = m.contract("Lock", [m.getParameter("unlockTime", 1893456000)], {
-    value: m.getParameter("lockedAmount", 1_000_000_000n),
-  });
-
-  const storage = m.contract("Storage", [], {});
+  const doubleMappingStorage = m.contract("DoubleMappingStorage", [], {});
 
   const certification = m.contract("Certification", [], {});
 
-  return { storage, lock, certification };
+  return { doubleMappingStorage, certification };
 });
 
 export default DeployModule;

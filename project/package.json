@@ -6,7 +6,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "compile": "npx hardhat compile",
-    "deploy:local": "npx hardhat ignition deploy ignition/modules/Deploy.ts --network localhost",
+    "deploy:local": "npx hardhat ignition deploy ignition/modules/Deploy.ts --network localhost --show-stack-traces",
     "deploy:prod": "npx hardhat ignition deploy ignition/modules/Deploy.ts --network production"
   },
   "keywords": [],
@@ -20,6 +20,7 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
-    "express": "^4.21.0"
+    "express": "^4.21.0",
+    "nodemon": "^3.1.7"
   }
 }

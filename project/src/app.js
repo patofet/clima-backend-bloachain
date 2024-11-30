@@ -16,17 +16,18 @@ app.use((req, res, next) => {
 
 // Rutas
 const routesDir = path.join(__dirname, 'routes');
+console.log('Rutas disponibles:');
 fs.readdirSync(routesDir).forEach((file) => {
     const routePath = `/${path.basename(file, '.js')}`; // Usa el nombre del archivo como ruta
     const route = require(path.join(routesDir, file)); // Importa la ruta
     app.use(routePath, route);
-    console.log(`Ruta cargada: ${routePath}`);
+    console.log(` -${routePath}`);
     route.stack.forEach((layer) => {
         if (layer.route) {
             const methods = Object.keys(layer.route.methods)
                 .map((method) => method.toUpperCase())
                 .join(', ');
-            console.log(`  [${methods}] ${routePath}${layer.route.path}`);
+            console.log(`   ·[${methods}] ${routePath}${layer.route.path}`);
         }
     });
 });
