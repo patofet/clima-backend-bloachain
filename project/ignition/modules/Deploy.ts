@@ -9,7 +9,9 @@ const DeployModule = buildModule("DeployModule", (m) => {
 
   const certification = m.contract("Certification", [], {});
 
-  return { doubleMappingStorage, certification };
+  const solarOwnership = m.contract("SolarOwnership", [], {});
+
+  return { doubleMappingStorage, certification, solarOwnership };
 });
 
 export default DeployModule;
