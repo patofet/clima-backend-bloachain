@@ -8,23 +8,24 @@ const SERVER_SECRET = process.env.PRIVATE_KEY;
 const router = express.Router();
 
 router.get("", (req, res) => {
-    const { address } = req.query;
+    const { address, message } = req.query;
     const timestamp = Math.floor(Date.now() / 1000); // Marca de tiempo en segundos
-    const rawMessage = `${address}:${timestamp}`;
-    const hash = CryptoJS.HmacSHA256(rawMessage, SERVER_SECRET).toString();
+    const encodedMessage = `${address}:${timestamp}:${message}`;
+    const hash = CryptoJS.HmacSHA256(encodedMessage, SERVER_SECRET).toString();
 
     res.json({
         address,
         timestamp,
+        message,
+        encodedMessage,
         hash
     });
 });
 
 router.post("/signMessage", async (req, res) => {
-    const {message, key} = req.body;
+    const {hash, key} = req.body;
     const wallet = new ethers.Wallet(key);
-    const signature = await wallet.signMessage(message);
-
+    const signature = await wallet.signMessage(hash);
     res.send(signature);
 });
 
