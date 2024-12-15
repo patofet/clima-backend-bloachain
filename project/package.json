@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "compile": "npx hardhat compile",
+    "compile": "npx hardhat clean && npx hardhat compile",
     "deploy:local": "npx hardhat ignition deploy ignition/modules/Deploy.ts --network localhost --show-stack-traces",
     "deploy:prod": "npx hardhat ignition deploy ignition/modules/Deploy.ts --network production --show-stack-traces"
   },
