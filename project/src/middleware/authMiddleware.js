@@ -39,8 +39,6 @@ function authenticate(req, res, next) {
 
         // Verifica la firma del cliente
         const recoveredAddress = ethers.verifyMessage(expectedHash, signed);
-        console.log('recoveredAddress:', recoveredAddress);
-        console.log('address:', address);
         if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
             return res.status(401).json({ error: 'Unauthorized: Invalid signature' });
         }
