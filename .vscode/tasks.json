@@ -1,0 +1,35 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Complicar smart contracts",
+            "options": {
+                "cwd": "${workspaceFolder}/project"
+            },
+            "type": "shell",
+            "command": "npm run compile",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy local",
+            "options": {
+                "cwd": "${workspaceFolder}/project"
+            },
+            "type": "shell",
+            "command": "npm run deploy:local",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy prod",
+            "options": {
+                "cwd": "${workspaceFolder}/project"
+            },
+            "type": "shell",
+            "command": "npm run deploy:prod",
+            "group": "build",
+            "problemMatcher": []
+        }
+    ]
+}
