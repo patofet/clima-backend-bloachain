@@ -16,10 +16,7 @@ function authenticate(req, res, next) {
         if (type !== 'Basic' || !credentials) {
             return res.status(401).json({ error: 'Header Authorization must be of type Basic' });
         }
-        console.log(credentials);
         const [encodedMessage, signed] = Buffer.from(credentials, 'base64').toString().split(':');
-        console.log(encodedMessage);
-        console.log(signed);
         const [address, timestamp, message] = encodedMessage.toString().split('/');
 
         if (!address) {
@@ -38,10 +35,12 @@ function authenticate(req, res, next) {
             return res.status(401).json({ error: 'Unauthorized: Missing signed' });
         }
 
-        const expectedHash = CryptoJS.HmacSHA256(address + ':' + timestamp + ':' + message, SERVER_SECRET).toString();
+        const expectedHash = CryptoJS.HmacSHA256(address + '/' + timestamp + '/' + message, SERVER_SECRET).toString();
 
         // Verifica la firma del cliente
         const recoveredAddress = ethers.verifyMessage(expectedHash, signed);
+        console.log('recoveredAddress:', recoveredAddress);
+        console.log('address:', address);
         if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
             return res.status(401).json({ error: 'Unauthorized: Invalid signature' });
         }
