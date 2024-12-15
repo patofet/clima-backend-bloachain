@@ -16,7 +16,10 @@ function authenticate(req, res, next) {
         if (type !== 'Basic' || !credentials) {
             return res.status(401).json({ error: 'Header Authorization must be of type Basic' });
         }
+        console.log(credentials);
         const [encodedMessage, signed] = Buffer.from(credentials, 'base64').toString().split(':');
+        console.log(encodedMessage);
+        console.log(signed);
         const [address, timestamp, message] = encodedMessage.toString().split('/');
 
         if (!address) {

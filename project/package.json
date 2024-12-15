@@ -6,8 +6,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "compile": "npx hardhat clean && npx hardhat compile",
-    "deploy:local": "rm -rf artifacts cache ignition/deployments && npx hardhat ignition deploy ignition/modules/Deploy.ts --network localhost --no-confirm --show-stack-traces",
-    "deploy:prod": "rm -rf artifacts cache ignition/deployments && npx hardhat ignition deploy ignition/modules/Deploy.ts --network production --no-confirm --show-stack-traces"
+    "deploy:local": "rm -rf artifacts cache ignition/deployments && export HARDHAT_IGNITION_CONFIRM_DEPLOYMENT=false && npx hardhat ignition deploy ignition/modules/Deploy.ts --network localhost --show-stack-traces",
+    "deploy:prod": "rm -rf artifacts cache ignition/deployments && export HARDHAT_IGNITION_CONFIRM_DEPLOYMENT=false && npx hardhat ignition deploy ignition/modules/Deploy.ts --network production --show-stack-traces"
   },
   "keywords": [],
   "author": "",

@@ -1,4 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config";
+import "dotenv"
 import "@nomicfoundation/hardhat-ignition-ethers";
 
 const config: HardhatUserConfig = {
