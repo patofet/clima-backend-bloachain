@@ -35,7 +35,7 @@ function authenticate(req, res, next) {
             return res.status(401).json({ error: 'Unauthorized: Missing signed' });
         }
 
-        const expectedHash = CryptoJS.HmacSHA256(address + '/' + timestamp + '/' + message, SERVER_SECRET).toString();
+        const expectedHash = CryptoJS.HmacSHA256(encodedMessage, SERVER_SECRET).toString();
 
         // Verifica la firma del cliente
         const recoveredAddress = ethers.verifyMessage(expectedHash, signed);

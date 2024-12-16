@@ -56,7 +56,7 @@ export default function () {
   const user = encodedMessage
   const password = signMessage
   const authorizationBasic = encoding.b64encode(`${user}:${password}`);
-  // Prueba 3: /certification/certify (POST)
+  // Prueba 3: /certification/certify-async (POST)
   let certifyData = JSON.stringify({
     certifiedString: randomString(100),
     description: randomString(200),
@@ -67,7 +67,7 @@ export default function () {
       'Basic ' + authorizationBasic,
   };
   let certifyRes = http.post(
-    url + '/certification/certify',
+    url + '/certification/certify-async',
     certifyData,
     { headers: certifyHeaders }
   );

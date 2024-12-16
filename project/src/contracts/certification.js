@@ -23,7 +23,7 @@ const initCertificationContract = () => {
         throw new Error('El ABI del contrato de certificación no se ha encontrado.');
     }
 
-    return new ethers.Contract(certificationAddress, abiCertification, wallet);
+    return {contract: new ethers.Contract(certificationAddress, abiCertification, wallet), wallet, provider};
 };
 
 // Exporta el contrato inicializado
