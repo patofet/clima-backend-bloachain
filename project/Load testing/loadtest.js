@@ -4,8 +4,8 @@ import encoding from 'k6/encoding';
 
 export let options = {
   stages: [
-    { duration: '10s', target: 10 }, // Subir hasta 10 usuarios concurrentes en 10 segundos
-    { duration: '20s', target: 50 }, // Mantener 50 usuarios durante 20 segundos
+    { duration: '10s', target: 100 }, // Subir hasta 10 usuarios concurrentes en 10 segundos
+    { duration: '20s', target: 500 }, // Mantener 50 usuarios durante 20 segundos
     { duration: '10s', target: 0 },  // Reducir la carga a 0 usuarios en 10 segundos
   ],
 };

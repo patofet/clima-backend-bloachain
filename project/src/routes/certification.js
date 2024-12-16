@@ -31,47 +31,33 @@ router.post('/certify-async', authenticate, async (req, res) => {
     const { certifiedString, description } = req.body;
     const { address, timestamp, message } = req.authentication;
 
-    const maxRetries = 5; // Número máximo de reintentos
-    const retryDelay = 300; // Tiempo de espera entre reintentos en milisegundos
+    const maxRetries = 5;
+    const retryDelay = 300;
     let attempt = 0;
 
     while (attempt < maxRetries) {
         try {
-            // Obtener el nonce actualizado
             const nonce = await certificationContract.wallet.getNonce();
-            console.log(`Intento ${attempt + 1}: Nonce = ${nonce}`);
-
-            // Enviar la transacción con el nonce
             const tx = await certificationContract.contract.certify(certifiedString, description, address, message, timestamp, { nonce });
-
-            // Responder al cliente inmediatamente con el hash
             res.json({
                 message: `Transacción enviada para certificar la cadena: ${certifiedString}`,
                 transactionHash: tx.hash,
             });
-
-            // Manejo asíncrono de la confirmación
             tx.wait()
                 .then(receipt => {
-                    console.log(`Transacción confirmada: ${receipt.transactionHash}`);
+                    console.log(`Transacción confirmada: ${receipt}`);
                 })
                 .catch(error => {
                     console.error(`Error confirmando la transacción: ${error.message}`);
                 });
 
-            return; // Salir del bucle si la transacción se envió con éxito
+            return;
         } catch (error) {
-            console.error(`Error en el intento ${attempt + 1}: ${error.message}`);
-
-            // Verificar si el error es relacionado con el nonce
             if (error.message.includes("nonce has already been used")) {
-                attempt++; // Incrementar el contador de reintentos
-                console.log(`Reintentando después de ${retryDelay} ms...`);
-                await sleep(retryDelay); // Esperar antes de reintentar
-                continue;  // Intentar nuevamente con un nonce actualizado
+                attempt++;
+                await sleep(retryDelay);
+                continue;
             }
-
-            // Si el error no es relacionado con el nonce, salir con un error
             return res.status(500).json({ error: error.message });
         }
     }
