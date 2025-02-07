@@ -1,17 +1,21 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Dev",
-            "type": "node",
-            "request": "launch",
-            "cwd": "${workspaceFolder}/project",
-            "runtimeExecutable": "npm",
-            "runtimeArgs": [
-                "start",
-                "dev"
-            ],
-            "console": "integratedTerminal",
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Dev",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/project",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start", "dev"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Autocertifier",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/project/autocertifier.py",
+      "console": "integratedTerminal"
+    }
+  ]
 }
