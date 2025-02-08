@@ -2,10 +2,8 @@ import csv
 import time
 import requests
 import json
-import urllib.parse
 import base64
 from eth_account import Account, messages
-from web3 import Web3
 
 SLEEP_BETWEEN_CALLS = 60
 ARCHIVO_CSV = '/Users/jobchain/IdeaProjects/arlab-blockchain/Data electriques/dades_minut.csv'
