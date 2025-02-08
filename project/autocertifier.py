@@ -90,7 +90,6 @@ def leer_y_enviar_datos():
             hash_to_sign = login_data.get('hash')
             encoded_message = login_data.get('encodedMessage')
             if hash_to_sign:
-                # hash_signed = firmar_mensaje(hash_to_sign)
                 hash_signed = firmar_mensaje_local(hash_to_sign)
                 if hash_signed:
                     authorization = "Basic " + base64.b64encode((encoded_message + ":" + hash_signed).encode('utf-8')).decode('utf-8')
