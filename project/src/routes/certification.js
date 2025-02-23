@@ -24,7 +24,8 @@ router.post("/certify", authenticate, async (req, res) => {
         message,
         timestamp
       );
-      const receipt = await tx.wait(); // Espera la confirmación
+      const receipt = await tx.wait();
+      console.log("Transacción confirmada");
       return res.json({
         message: `Cadena certificada con éxitooo: ${certifiedString}`,
         transaction: JSON.stringify(receipt),
