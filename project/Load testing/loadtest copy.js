@@ -3,20 +3,22 @@ import { check } from "k6";
 import { Trend } from "k6/metrics";
 import encoding from "k6/encoding";
 
+// MY_DURATION=2 MY_RATE=2 k6 run --log-format raw --quiet loadtest\ copy.js 2> tst.ttt
 // Definimos una métrica para el tiempo de respuesta
 const responseTimes = new Trend("response_times");
-
+const rate = parseInt(__ENV.MY_RATE || "1");
+const duration = parseInt(__ENV.MY_DURATION || "60");
 export const options = {
   scenarios: {
     mi_escenario: {
       // Puedes darle el nombre que quieras al escenario
       executor: "constant-arrival-rate",
-      duration: "1s", // Duración total: 60 segundos
-      rate: 2, // Tasa de llegada: 1 iteración por segundo
+      duration: duration + "s", // Duración total
+      rate: rate, // Tasa de llegada: X iteración por segundo
       timeUnit: "1s", // Unidad de tiempo para 'rate': por segundo
-      preAllocatedVUs: 1000, // Pre-asignar 1 VU
-      maxVUs: 1000, // Máximo de VUs (ajustado, ver explicación abajo)
-      gracefulStop: "300s",
+      preAllocatedVUs: 60 * rate, // Pre-asignar VUs inicialmente
+      maxVUs: 60 * rate * 2, // Máximo de VUs (ajustado, ver explicación abajo)
+      gracefulStop: "300000s",
     },
   },
 };
@@ -42,7 +44,6 @@ export default function () {
     url + "/login?address=" + address + "&message=" + message
   );
   check(loginRes, {
-    "login: status 200": (r) => r.status === 200,
     "login: contiene hash": (r) => r.json().hasOwnProperty("hash"),
     "login: contiene encodedMessage": (r) =>
       r.json().hasOwnProperty("encodedMessage"),
@@ -81,26 +82,30 @@ export default function () {
     timeout: 3000000,
   });
   responseTimes.add(certifyRes.timings.duration);
-  const success = check(certifyRes, {
+  const successfull = check(certifyRes, {
     "certify: status 200": (r) => r.status === 200,
-    "signMessage: contiene respuesta válida": (r) => r.body !== "",
+    "certifyRes: contiene transaccion": (r) =>
+      r.json().hasOwnProperty("transaction"),
   });
-  if (!success) {
-    console.error(
-      `Certify failed. Status: ${certifyRes.status}, Response: ${certifyRes.body}`
-    );
-  }
 }
 export function handleSummary(data) {
-  const iterationsPerSecond =
-    data.metrics.iterations.values.count /
-    (data.state.testRunDurationMs / 1000);
-  const summaryLine = `${iterationsPerSecond.toFixed(2)} iters/s avg=${
-    data.metrics.response_times.values.avg
-  } min=${data.metrics.response_times.values.min} med=${
-    data.metrics.response_times.values.med
-  } max=${data.metrics.response_times.values.max} p(90)=${
-    data.metrics.response_times.values["p(90)"]
-  } p(95)=${data.metrics.response_times.values["p(95)"]}`;
-  return { "resultados.txt": summaryLine + "\n" };
+  //console.log(JSON.stringify(data));
+  const checks = data.root_group.checks;
+  const certifyTitle = "certifyRes: contiene transaccion";
+  const checkCertify = checks.find((c) => c.name === certifyTitle);
+
+  const iterations = data.metrics.iterations.values.count;
+  const iterationsPerSecond = (iterations / duration).toFixed(2);
+  const certifyPasses = checkCertify.passes;
+  const avg = data.metrics.response_times.values.avg;
+  const min = data.metrics.response_times.values.min;
+  const med = data.metrics.response_times.values.med;
+  const max = data.metrics.response_times.values.max;
+  const p90 = data.metrics.response_times.values["p(90)"];
+  const p95 = data.metrics.response_times.values["p(95)"];
+  // Duration:Iterations:Iterations per second:passes:Avg:Min:Med:Max:P90:P95
+  const summaryLine = `${duration}:${iterations}:${iterationsPerSecond}:${certifyPasses}:${avg}:${min}:${med}:${max}:${p90}:${p95}`;
+  // MY_DURATION=2 MY_RATE=2 k6 run --log-format raw --quiet loadtest\ copy.js 2>> tst.ttt
+  console.log(summaryLine);
+  return {};
 }
