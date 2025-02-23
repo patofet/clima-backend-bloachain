@@ -6,7 +6,7 @@ import encoding from "k6/encoding";
 // MY_DURATION=2 MY_RATE=2 k6 run --log-format raw --quiet loadtest\ copy.js 2> tst.ttt
 // Definimos una métrica para el tiempo de respuesta
 const responseTimes = new Trend("response_times");
-const rate = parseInt(__ENV.MY_RATE || "1");
+const rate = parseInt(__ENV.MY_RATE || "5");
 const duration = parseInt(__ENV.MY_DURATION || "60");
 export const options = {
   scenarios: {
@@ -16,8 +16,8 @@ export const options = {
       duration: duration + "s", // Duración total
       rate: rate, // Tasa de llegada: X iteración por segundo
       timeUnit: "1s", // Unidad de tiempo para 'rate': por segundo
-      preAllocatedVUs: 60 * rate, // Pre-asignar VUs inicialmente
-      maxVUs: 60 * rate * 2, // Máximo de VUs (ajustado, ver explicación abajo)
+      preAllocatedVUs: duration * rate * 2, // Pre-asignar VUs inicialmente
+      maxVUs: duration * rate * 4, // Máximo de VUs (ajustado, ver explicación abajo)
       gracefulStop: "300000s",
     },
   },
@@ -38,7 +38,7 @@ export default function () {
   //const url = "http://84.88.154.234:3000";
   const url = "http://localhost:3000";
   const address = "0xbb678ed4adb678bad4b8f7203135ae1854463a7f";
-  const message = randomString(50); // Random string
+  const message = randomString(11993); // Random string
   // Prueba 1: /login (GET)
   let loginRes = http.get(
     url + "/login?address=" + address + "&message=" + message
