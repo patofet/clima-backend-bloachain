@@ -16,17 +16,14 @@ router.post("/certify", authenticate, async (req, res) => {
   let attempt = 0;
   while (attempt < maxRetries) {
     try {
-      console.log("Certificando cadena...");
       const nonce = await certificationContract.wallet.getNonce("pending");
-      console.log("Nonce obtenido:", nonce); // Para depuración
-
       const tx = await certificationContract.contract.certify(
         certifiedString,
         description,
         address,
         message,
         timestamp,
-        { nonce: nonce } // **2. Pasar el nonce explícitamente en las opciones**
+        { nonce: nonce }
       );
       const receipt = await tx.wait();
       console.log("Transacción confirmada");
@@ -59,14 +56,14 @@ router.post("/certify-async", authenticate, async (req, res) => {
 
   while (attempt < maxRetries) {
     try {
-      const nonce = await certificationContract.wallet.getNonce();
+      const nonce = await certificationContract.wallet.getNonce("pending");
       const tx = await certificationContract.contract.certify(
         certifiedString,
         description,
         address,
         message,
         timestamp,
-        { nonce }
+        { nonce: nonce }
       );
       res.json({
         message: `Transacción enviada para certificar la cadena: ${certifiedString}`,
