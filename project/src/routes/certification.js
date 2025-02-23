@@ -16,6 +16,7 @@ router.post("/certify", authenticate, async (req, res) => {
   let attempt = 0;
   while (attempt < maxRetries) {
     try {
+      console.log("Certificando cadena...");
       const tx = await certificationContract.contract.certify(
         certifiedString,
         description,
