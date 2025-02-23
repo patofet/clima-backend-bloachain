@@ -17,14 +17,6 @@ router.post("/certify", authenticate, async (req, res) => {
   while (attempt < maxRetries) {
     try {
       console.log("Certificando cadena...");
-      await certificationContract.contract.estimateGas.certify(
-        certifiedString,
-        description,
-        address,
-        message,
-        timestamp,
-        { from: certificationContract.wallet.address } // Importante: `from` debe ser tu dirección
-      );
       const nonce = await certificationContract.wallet.getNonce("pending");
       console.log("Nonce obtenido:", nonce); // Para depuración
 
