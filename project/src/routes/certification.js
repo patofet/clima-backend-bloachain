@@ -11,22 +11,32 @@ const router = express.Router();
 router.post("/certify", authenticate, async (req, res) => {
   const { certifiedString, description } = req.body;
   const { address, timestamp, message } = req.authentication;
-  try {
-    const tx = await certificationContract.contract.certify(
-      certifiedString,
-      description,
-      address,
-      message,
-      timestamp
-    );
-    const receipt = await tx.wait(); // Espera la confirmación
-    res.json({
-      message: `Cadena certificada con éxito: ${certifiedString}`,
-      transactionHash: receipt.transactionHash,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message, object: error });
+  const maxRetries = 5;
+  const retryDelay = 300;
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      const tx = await certificationContract.contract.certify(
+        certifiedString,
+        description,
+        address,
+        message,
+        timestamp
+      );
+      const receipt = await tx.wait(); // Espera la confirmación
+      return res.json({
+        message: `Cadena certificada con éxito: ${certifiedString}`,
+        transactionHash: receipt.transactionHash,
+      });
+    } catch (error) {
+      console.error(error);
+      if (error.message.includes("nonce has already been used")) {
+        attempt++;
+        await sleep(retryDelay);
+        continue;
+      }
+      return res.status(500).json({ error: error.message, object: error });
+    }
   }
 });
 function sleep(ms) {

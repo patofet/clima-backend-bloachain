@@ -6,7 +6,7 @@ import base64
 from eth_account import Account, messages
 
 SLEEP_BETWEEN_CALLS = 60
-ARCHIVO_CSV = '/Users/jobchain/IdeaProjects/arlab-blockchain/Data electriques/dades_minut.csv'
+ARCHIVO_CSV = 'Data/dades_minut.csv'
 ENDPOINT_BASE = 'http://localhost:3000'
 BLOCKCHAIN_PUBLIC_ADDRESS = '0xbb678ed4adb678bad4b8f7203135ae1854463a7f'
 BLOCKCHAIN_PRIVATE_KEY = 'bbd734bd28112c4c4f7e73571074ec8b5d3601f744cee7d166ac4a61558a753d'

@@ -1,13 +1,24 @@
 import http from "k6/http";
-import { check, sleep } from "k6";
+import { check } from "k6";
+import { Trend } from "k6/metrics";
 import encoding from "k6/encoding";
-// tope string per certificar i tope de transaccions per segon
+
+// Definimos una métrica para el tiempo de respuesta
+const responseTimes = new Trend("response_times");
+
 export const options = {
-  stages: [
-    { duration: "10s", target: 100 }, // Subir hasta 10 usuarios concurrentes en 10 segundos
-    { duration: "20s", target: 500 }, // Mantener 50 usuarios durante 20 segundos
-    { duration: "10s", target: 0 }, // Reducir la carga a 0 usuarios en 10 segundos
-  ],
+  scenarios: {
+    mi_escenario: {
+      // Puedes darle el nombre que quieras al escenario
+      executor: "constant-arrival-rate",
+      duration: "1s", // Duración total: 60 segundos
+      rate: 2, // Tasa de llegada: 1 iteración por segundo
+      timeUnit: "1s", // Unidad de tiempo para 'rate': por segundo
+      preAllocatedVUs: 1000, // Pre-asignar 1 VU
+      maxVUs: 1000, // Máximo de VUs (ajustado, ver explicación abajo)
+      gracefulStop: "300s",
+    },
+  },
 };
 
 function randomString(length) {
@@ -67,7 +78,9 @@ export default function () {
   };
   let certifyRes = http.post(url + "/certification/certify", certifyData, {
     headers: certifyHeaders,
+    timeout: 3000000,
   });
+  responseTimes.add(certifyRes.timings.duration);
   const success = check(certifyRes, {
     "certify: status 200": (r) => r.status === 200,
     "signMessage: contiene respuesta válida": (r) => r.body !== "",
@@ -77,5 +90,17 @@ export default function () {
       `Certify failed. Status: ${certifyRes.status}, Response: ${certifyRes.body}`
     );
   }
-  sleep(1); // Esperar 1 segundo entre iteraciones
+}
+export function handleSummary(data) {
+  const iterationsPerSecond =
+    data.metrics.iterations.values.count /
+    (data.state.testRunDurationMs / 1000);
+  const summaryLine = `${iterationsPerSecond.toFixed(2)} iters/s avg=${
+    data.metrics.response_times.values.avg
+  } min=${data.metrics.response_times.values.min} med=${
+    data.metrics.response_times.values.med
+  } max=${data.metrics.response_times.values.max} p(90)=${
+    data.metrics.response_times.values["p(90)"]
+  } p(95)=${data.metrics.response_times.values["p(95)"]}`;
+  return { "resultados.txt": summaryLine + "\n" };
 }
