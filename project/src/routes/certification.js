@@ -26,7 +26,6 @@ router.post("/certify", authenticate, async (req, res) => {
         { nonce: nonce }
       );
       const receipt = await tx.wait();
-      console.log("Transacción confirmada");
       return res.json({
         message: `Cadena certificada con éxitooo: ${certifiedString}`,
         transaction: JSON.stringify(receipt),
@@ -70,9 +69,7 @@ router.post("/certify-async", authenticate, async (req, res) => {
         transactionHash: tx.hash,
       });
       tx.wait()
-        .then((receipt) => {
-          console.log(`Transacción confirmada: ${receipt}`);
-        })
+        .then((receipt) => {})
         .catch((error) => {
           console.error(`Error confirmando la transacción: ${error.message}`);
         });
