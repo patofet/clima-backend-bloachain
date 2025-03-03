@@ -28,7 +28,8 @@ router.post("/certify", authenticate, async (req, res) => {
       const receipt = await tx.wait();
       return res.json({
         message: `Cadena certificada con éxitooo: ${certifiedString}`,
-        transaction: JSON.stringify(receipt),
+        transactionHash: receipt.hash,
+        transactionInfo: JSON.stringify(receipt),
       });
     } catch (error) {
       console.error(error);
@@ -89,6 +90,30 @@ router.post("/certify-async", authenticate, async (req, res) => {
   res.status(500).json({
     error: `No se pudo enviar la transacción después de ${maxRetries} intentos.`,
   });
+});
+
+router.get("/getCertificate/:TransactionHash", async (req, res) => {
+  const { TransactionHash } = req.params;
+
+  if (!TransactionHash) {
+    return res
+      .status(400)
+      .json({ error: "El parámetro TransactionHash es obligatorio." });
+  }
+  try {
+    const transaction = await certificationContract.getTransactionDetails(
+      TransactionHash
+    );
+    const { blockNumber, functionName, functionParams } = transaction;
+    return res.json({
+      blockNumber,
+      functionName,
+      params: functionParams,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 router.get("/isCertified/:data", async (req, res) => {

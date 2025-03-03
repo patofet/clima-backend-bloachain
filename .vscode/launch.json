@@ -11,6 +11,15 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "Deploy local", //deploy:local
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/project",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "deploy:local"],
+      "console": "integratedTerminal"
+    },
+    {
       "name": "Autocertifier",
       "type": "debugpy",
       "request": "launch",

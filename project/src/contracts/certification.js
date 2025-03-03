@@ -32,6 +32,82 @@ const initCertificationContract = () => {
     );
   }
 
+  // Función para obtener detalles de la transacción
+  const getTransactionDetails = async (transactionHash) => {
+    try {
+      // Obtener el recibo de la transacción
+      const receipt = await provider.getTransactionReceipt(transactionHash);
+
+      if (!receipt) {
+        return {
+          status: "pending",
+          message: "La transacción todavía está pendiente.",
+        };
+      }
+
+      // Analizar el estado de la transacción
+      const status = receipt.status === 1 ? "success" : "failed";
+
+      // Obtener la transacción completa para decodificar la data
+      const transaction = await provider.getTransaction(transactionHash);
+
+      let functionName = "No se pudo decodificar";
+      let functionParams = "No se pudo decodificar";
+
+      if (
+        transaction &&
+        transaction.to === certificationAddress &&
+        transaction.data !== "0x"
+      ) {
+        try {
+          const contractInterface = new ethers.Interface(abiCertification);
+          const decodedData = contractInterface.parseTransaction({
+            data: transaction.data,
+          });
+          const { inputs } = contractInterface.getFunction(decodedData.name);
+          const decodedParamsData = {};
+          // inputs.forEach((input, index) => {
+          //   decodedParams[input.name] = decodedData.args[index];
+          // });
+          for (let i = 0; i < inputs.length; i++) {
+            decodedParamsData[inputs[i].name] = String(decodedData.args[i]);
+          }
+          functionName = decodedData.name;
+          functionParams = decodedParamsData;
+        } catch (decodeError) {
+          console.error(
+            "Error al decodificar la data de la transacción:",
+            decodeError
+          );
+          functionName = "Decodificación fallida";
+          functionParams = "Decodificación fallida";
+        }
+      } else {
+        functionName = "No es llamada a contrato";
+        functionParams = "No es llamada a contrato";
+      }
+
+      return {
+        status,
+        transactionHash: receipt.transactionHash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed.toString(),
+        confirmations: receipt.confirmations,
+        functionName: functionName,
+        functionParams: functionParams,
+      };
+    } catch (error) {
+      console.error(
+        `Error al obtener el estado de la transacción: ${error.message}`
+      );
+      return {
+        status: "error",
+        message: "Error al consultar el estado de la transacción.",
+        error: error.message,
+      };
+    }
+  };
+
   return {
     contract: new ethers.Contract(
       certificationAddress,
@@ -40,6 +116,7 @@ const initCertificationContract = () => {
     ),
     wallet,
     provider,
+    getTransactionDetails, // Exporta la nueva función
   };
 };
 
