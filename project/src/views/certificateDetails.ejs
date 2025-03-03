@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Detalles del Certificado</title>
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+      .container {
+        width: 80%;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+      }
+      h1 {
+        text-align: center;
+      }
+      .detail-item {
+        margin-bottom: 10px;
+      }
+      .detail-label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .detail-value {
+        padding: 8px;
+        border: 1px solid #eee;
+        background-color: #f9f9f9;
+      }
+      .params-container {
+        border: 1px solid #ddd;
+        padding: 10px;
+        margin-top: 20px;
+        background-color: #fafafa;
+      }
+      .params-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Detalles del Certificado</h1>
+
+      <div class="detail-item">
+        <span class="detail-label">Número de Bloque:</span>
+        <span class="detail-value"><%= blockNumber %></span>
+      </div>
+
+      <div class="detail-item">
+        <span class="detail-label">Nombre de la Función:</span>
+        <span class="detail-value"><%= functionName %></span>
+      </div>
+
+      <div class="params-container">
+        <h2 class="params-title">Parámetros:</h2>
+        <% if (params) { %> <% for(var key in params) { %>
+        <div class="detail-item">
+          <span class="detail-label"><%= key %>:</span>
+          <span class="detail-value"><%= params[key] %></span>
+        </div>
+        <% } %> <% } else { %>
+        <p>No hay parámetros disponibles.</p>
+        <% } %>
+      </div>
+    </div>
+  </body>
+</html>

@@ -105,9 +105,14 @@ router.get("/getCertificate/:TransactionHash", async (req, res) => {
       TransactionHash
     );
     const { blockNumber, functionName, functionParams } = transaction;
-    return res.json({
-      blockNumber,
-      functionName,
+    // return res.json({
+    //   blockNumber,
+    //   functionName,
+    //   params: functionParams,
+    // });
+    return res.render("certificateDetails", {
+      blockNumber: blockNumber,
+      functionName: functionName,
       params: functionParams,
     });
   } catch (error) {

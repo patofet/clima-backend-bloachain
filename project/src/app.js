@@ -56,5 +56,6 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: "Algo salió mal" });
 });
-
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 module.exports = app;
