@@ -1,9 +1,11 @@
-const { ethers } = require("ethers");
+const { ethers, Wallet } = require("ethers");
 const CryptoJS = require("crypto-js");
 
 const SERVER_SECRET = process.env.PRIVATE_KEY;
 
-function authenticate(req, res, next) {
+// get address of the server
+const serverAddress = new Wallet(SERVER_SECRET).address;
+async function authenticate(req, res, next) {
   try {
     // Extrae el header Authorization
     const authorization = req.headers.authorization;
@@ -13,7 +15,6 @@ function authenticate(req, res, next) {
         .json({ error: "Unauthorized: Missing authorization header" });
     }
 
-    // Decodifica las credenciales del header
     const [type, credentials] = authorization.split(" ");
     if (type !== "Basic" || !credentials) {
       return res
@@ -36,30 +37,29 @@ function authenticate(req, res, next) {
     if (Math.abs(Date.now() / 1000 - timestamp) > 60) {
       return res.status(401).json({ error: "Unauthorized: Timestamp expired" });
     }
-    if (!message) {
-      return res.status(401).json({ error: "Unauthorized: Missing message" });
-    }
+    // if (!message) {
+    //   return res.status(401).json({ error: "Unauthorized: Missing message" });
+    // }
     if (!signed) {
       return res.status(401).json({ error: "Unauthorized: Missing signed" });
     }
-
     const expectedHash = CryptoJS.HmacSHA256(
       encodedMessage,
       SERVER_SECRET
     ).toString();
 
-    // Verifica la firma del cliente
     const recoveredAddress = ethers.verifyMessage(expectedHash, signed);
     if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
       return res.status(401).json({ error: "Unauthorized: Invalid signature" });
     }
 
-    // Autenticación exitosa, almacena el usuario en la request
     req.authentication = {
       address,
       timestamp,
       message,
       signed,
+      expectedHash,
+      isAdmin: address === serverAddress,
     };
     next();
   } catch (error) {
@@ -67,5 +67,12 @@ function authenticate(req, res, next) {
     res.status(401).json({ error: "Authentication failed" });
   }
 }
+function isAdmin(req, res, next) {
+  if (req.authentication && req.authentication.isAdmin) {
+    return next();
+  } else {
+    return res.status(403).json({ error: "Forbidden: Admin access required" });
+  }
+}
 
-module.exports = authenticate;
+module.exports = { authenticate, isAdmin };

@@ -1,5 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config";
-import "dotenv"
+import "dotenv";
 import "@nomicfoundation/hardhat-ignition-ethers";
 
 const config: HardhatUserConfig = {
@@ -12,15 +12,19 @@ const config: HardhatUserConfig = {
       },
       gasPrice: 0,
       gas: 0x1ffffffffffffe,
-      accounts: ['0xa6111af4d1068a00cdf96abf12f2540bcf531deb3aaae211232059a9c704757e'],
+      accounts: [
+        "0xa06dbd15968133e7493b8aca3479afa9305b981ae3bc3be3e1bcc3895f3c0786",
+      ],
     },
     production: {
       chainId: 1714,
       url: "http://84.88.154.252:8545",
       gasPrice: 0,
       gas: 0x1ffffffffffffe,
-      accounts: ['0xa6111af4d1068a00cdf96abf12f2540bcf531deb3aaae211232059a9c704757e'],
-    }
+      accounts: [
+        "0xa06dbd15968133e7493b8aca3479afa9305b981ae3bc3be3e1bcc3895f3c0786",
+      ],
+    },
   },
   solidity: {
     version: "0.8.27",

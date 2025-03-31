@@ -1,7 +1,7 @@
 // routes/certificationRoutes.js
 const express = require("express");
 const { initCertificationContract } = require("../contracts/certification");
-const authenticate = require("../middleware/authMiddleware");
+const { authenticate } = require("../middleware/authMiddleware");
 
 // Inicialización del contrato
 const certificationContract = initCertificationContract();
@@ -10,10 +10,28 @@ const router = express.Router();
 // Rutas
 router.post("/certify", authenticate, async (req, res) => {
   const { certifiedString, description } = req.body;
-  const { address, timestamp, message } = req.authentication;
+  const { address, timestamp, message, signed, isVerified } =
+    req.authentication;
   const maxRetries = 5;
   const retryDelay = 500;
   let attempt = 0;
+  if (!certifiedString || !description) {
+    return res.status(400).json({
+      error: "Los campos certifiedString y description son obligatorios.",
+    });
+  }
+  // if (message !== certifiedString) {
+  //   return res
+  //     .status(400)
+  //     .json({
+  //       error: "El mensaje firmado no coincide con la cadena a certificar.",
+  //     });
+  // }
+  if (!isVerified) {
+    return res
+      .status(401)
+      .json({ error: "No estás autorizado para certificar cadenas." });
+  }
   while (attempt < maxRetries) {
     try {
       const nonce = await certificationContract.wallet.getNonce("pending");
@@ -21,7 +39,7 @@ router.post("/certify", authenticate, async (req, res) => {
         certifiedString,
         description,
         address,
-        message,
+        signed,
         timestamp,
         { nonce: nonce }
       );

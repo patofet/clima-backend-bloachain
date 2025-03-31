@@ -1,4 +1,4 @@
-version: '3.7'
+version: "3.7"
 
 services:
   # Nodo validador 1
@@ -13,10 +13,10 @@ services:
       - ./data/validator1/data:/opt/besu/data
       - ./data/validator1/config:/opt/besu/config
     ports:
-      - 8545:8545  # RPC HTTP
-      - 8546:8546  # RPC WebSocket
-      - 30303:30303  # P2P TCP
-      - 30303:30303/udp  # P2P UDP
+      - 8545:8545 # RPC HTTP
+      - 8546:8546 # RPC WebSocket
+      - 30303:30303 # P2P TCP
+      - 30303:30303/udp # P2P UDP
     command:
       - "--logging=INFO"
       - "--min-gas-price=0"
@@ -31,7 +31,7 @@ services:
       - "--rpc-ws-host=0.0.0.0"
       - "--rpc-ws-port=8546"
       - "--p2p-port=30303"
-      - "--host-whitelist=*"
+      - "--host-allowlist=*"
       - "--rpc-http-cors-origins=*"
       - "--rpc-http-api=ETH,NET,IBFT,WEB3"
       - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
@@ -61,7 +61,7 @@ services:
       - "--genesis-file=/opt/besu/genesis.json"
       - "--node-private-key-file=/opt/besu/key"
       - "--p2p-port=30304"
-      - "--host-whitelist=*"
+      - "--host-allowlist=*"
       - "--rpc-http-api=ETH,NET,IBFT,WEB3"
       - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
       - "--rpc-http-cors-origins=*"
@@ -91,7 +91,7 @@ services:
       - "--genesis-file=/opt/besu/genesis.json"
       - "--node-private-key-file=/opt/besu/key"
       - "--p2p-port=30305"
-      - "--host-whitelist=*"
+      - "--host-allowlist=*"
       - "--rpc-http-api=ETH,NET,IBFT,WEB3"
       - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
       - "--rpc-http-cors-origins=*"

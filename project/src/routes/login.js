@@ -1,7 +1,7 @@
 const express = require("express");
 const { ethers } = require("ethers");
 const CryptoJS = require("crypto-js");
-const authenticate = require("../middleware/authMiddleware");
+const { authenticate } = require("../middleware/authMiddleware");
 
 const SERVER_SECRET = process.env.PRIVATE_KEY;
 
@@ -42,6 +42,19 @@ router.post("/testAuthenticate", authenticate, async (req, res) => {
     res.json({
       message: "Autenticación exitosa",
       authentication: req.authentication,
+    });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
+router.post("/testHash", async (req, res) => {
+  try {
+    const { expectedHash, signedHash } = req.body;
+    const recoveredAddress = ethers.verifyMessage(expectedHash, signedHash);
+    res.json({
+      message: "Verificación exitosa",
+      authentication: recoveredAddress,
     });
   } catch (error) {
     res.status(400).send(error.message);
