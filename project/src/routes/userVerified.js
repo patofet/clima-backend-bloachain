@@ -1,6 +1,6 @@
 // routes/usersVerifiedRoutes.js
 const express = require("express");
-const { initUsersVerifiedContract } = require("../contracts/usersVerified"); // Asegúrate de ajustar la ruta
+const { initUsersVerifiedContract } = require("../contracts/UsersVerified"); // Asegúrate de ajustar la ruta
 const { authenticate, isAdmin } = require("../middleware/authMiddleware");
 
 // Inicialización del contrato
