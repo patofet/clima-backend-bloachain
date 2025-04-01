@@ -33,6 +33,7 @@ router.post("/certify", authenticate, async (req, res) => {
         "pending"
       );
       const signature = signed.slice(2);
+      console.log("nonce", nonce);
       const tx = await certificationVerificatedContract.contract.certify(
         certifiedString,
         description,
