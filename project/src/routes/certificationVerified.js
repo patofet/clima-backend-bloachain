@@ -4,7 +4,7 @@ const {
   initCertificationVerificatedContract,
 } = require("../contracts/CertificationVerificated");
 const { authenticate } = require("../middleware/authMiddleware");
-import { parseUnits } from "ethers";
+const { parseUnits } = require("ethers");
 
 // Inicialización del contrato
 const certificationVerificatedContract = initCertificationVerificatedContract();
