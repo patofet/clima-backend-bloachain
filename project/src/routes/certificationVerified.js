@@ -29,9 +29,6 @@ router.post("/certify", authenticate, async (req, res) => {
   }
   while (attempt < maxRetries) {
     try {
-      const nonce = await certificationVerificatedContract.wallet.getNonce(
-        "pending"
-      );
       const signature = signed.slice(2);
       console.log("nonce", nonce);
       const tx = await certificationVerificatedContract.contract.certify(
@@ -40,8 +37,7 @@ router.post("/certify", authenticate, async (req, res) => {
         address,
         expectedHash,
         "0x" + signature,
-        timestamp,
-        { nonce: nonce }
+        timestamp
       );
       const receipt = await tx.wait();
       return res.json({
