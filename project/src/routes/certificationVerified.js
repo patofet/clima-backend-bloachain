@@ -4,7 +4,6 @@ const {
   initCertificationVerificatedContract,
 } = require("../contracts/CertificationVerificated");
 const { authenticate } = require("../middleware/authMiddleware");
-const { parseUnits } = require("ethers");
 
 // Inicialización del contrato
 const certificationVerificatedContract = initCertificationVerificatedContract();
@@ -30,6 +29,9 @@ router.post("/certify", authenticate, async (req, res) => {
   }
   while (attempt < maxRetries) {
     try {
+      const nonce = await certificationVerificatedContract.wallet.getNonce(
+        "pending"
+      );
       const signature = signed.slice(2);
       const tx = await certificationVerificatedContract.contract.certify(
         certifiedString,
@@ -38,9 +40,7 @@ router.post("/certify", authenticate, async (req, res) => {
         expectedHash,
         "0x" + signature,
         timestamp,
-        {
-          gasPrice: parseUnits("1", "gwei"),
-        }
+        { nonce: nonce }
       );
       const receipt = await tx.wait();
       return res.json({
