@@ -31,8 +31,6 @@ router.post("/certify", authenticate, async (req, res) => {
   while (attempt < maxRetries) {
     try {
       const signature = signed.slice(2);
-      const balance = await provider.getBalance(wallet.address);
-      console.log("Sender Balance:", ethers.formatEther(balance));
       const tx = await certificationVerificatedContract.contract.certify(
         certifiedString,
         description,
