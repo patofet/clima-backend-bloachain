@@ -5,20 +5,18 @@ const fs = require("fs");
 
 // Función para inicializar el contrato
 const initCertificationVerificatedContract = () => {
-  const fs = require("fs");
   const addressesPath = ADDRESSES_PATH;
   const certificationInfoPath =
-    "artifacts/contracts/CertificationVerificated.sol/CertificationVerificated.json";
+    "artifacts/contracts/CertificationVerificated.sol/CertificationVerificated.json"; // Ruta correcta a tu ABI JSON
   const data = JSON.parse(fs.readFileSync(addressesPath, "utf8"));
   const certificationInfo = JSON.parse(
     fs.readFileSync(certificationInfoPath, "utf8")
   );
 
   const provider = new JsonRpcProvider(process.env.JSON_RPC_URL);
-  const wallet = new NonceManager(
-    new ethers.Wallet(process.env.PRIVATE_KEY, provider)
-  );
-  const certificationAddress = data["DeployModule#CertificationVerificated"];
+  // Guarda la wallet base SIN NonceManager
+  const baseWallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const certificationAddress = data["DeployModule#CertificationVerificated"]; // Asegúrate que esta key es correcta
   const abiCertification = certificationInfo["abi"];
 
   if (!certificationAddress) {
@@ -31,6 +29,22 @@ const initCertificationVerificatedContract = () => {
       "El ABI del contrato de certificación no se ha encontrado."
     );
   }
+
+  // --- Estado Mutable Interno ---
+  let currentManagedSigner = new NonceManager(baseWallet);
+  let currentContractInstance = new ethers.Contract(
+    certificationAddress,
+    abiCertification,
+    currentManagedSigner // Conectar contrato al NonceManager
+  );
+  // --- Fin Estado Mutable ---
+
+  const getState = () => ({
+    // Función para obtener el estado actual
+    contract: currentContractInstance,
+    wallet: currentManagedSigner, // Exporta el NonceManager actual
+    provider,
+  });
 
   // Función para obtener detalles de la transacción
   const getTransactionDetails = async (transactionHash) => {
@@ -108,15 +122,22 @@ const initCertificationVerificatedContract = () => {
     }
   };
 
-  return {
-    contract: new ethers.Contract(
+  const restartNonceManagerInternal = () => {
+    console.warn("Reiniciando NonceManager y la instancia del Contrato...");
+    // Crea NUEVO NonceManager usando la wallet BASE
+    currentManagedSigner = new NonceManager(baseWallet);
+    // Crea NUEVA instancia de Contrato conectada al NUEVO NonceManager
+    currentContractInstance = new ethers.Contract(
       certificationAddress,
       abiCertification,
-      wallet
-    ),
-    wallet,
-    provider,
-    getTransactionDetails, // Exporta la nueva función
+      currentManagedSigner
+    );
+    console.log("NonceManager y Contrato reiniciados.");
+  };
+  return {
+    getState,
+    restartNonceManager: restartNonceManagerInternal, // Renombrado para claridad
+    getTransactionDetails,
   };
 };
 

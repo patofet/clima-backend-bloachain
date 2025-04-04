@@ -6,7 +6,7 @@ const {
 const { authenticate } = require("../middleware/authMiddleware");
 
 // Inicialización del contrato
-const certificationVerificatedContract = initCertificationVerificatedContract();
+const contractManager = initCertificationVerificatedContract();
 const router = express.Router();
 
 // Rutas
@@ -15,8 +15,9 @@ router.post("/certify", authenticate, async (req, res) => {
   const { address, timestamp, message, signed, expectedHash } =
     req.authentication;
   const maxRetries = 5;
-  const retryDelay = 500;
+  const retryDelay = 1000; // Quizás un poco más de delay
   let attempt = 0;
+
   if (!certifiedString || !description) {
     return res.status(400).json({
       error: "Los campos certifiedString y description son obligatorios.",
@@ -27,38 +28,67 @@ router.post("/certify", authenticate, async (req, res) => {
       error: "El mensaje firmado no coincide con la cadena a certificar.",
     });
   }
+
   while (attempt < maxRetries) {
+    const { contract } = contractManager.getState();
     try {
-      const nonce = await certificationVerificatedContract.wallet.getNonce(
-        "pending"
-      );
       const signature = signed.slice(2);
-      console.log("nonce", nonce);
-      const tx = await certificationVerificatedContract.contract.certify(
+      console.log(`Intento ${attempt + 1}: Llamando a certify`);
+      const tx = await contract.certify(
         certifiedString,
         description,
         address,
         expectedHash,
         "0x" + signature,
-        timestamp,
-        { nonce: nonce }
+        timestamp
       );
+      console.log(`Intento ${attempt + 1}: Transacción enviada: ${tx.hash}`);
       const receipt = await tx.wait();
+      console.log(`Intento ${attempt + 1}: Transacción confirmada.`);
+
       return res.json({
-        message: `Cadena certificada con éxitooo: ${certifiedString}`,
+        message: `Cadena certificada con éxito: ${certifiedString}`,
         transactionHash: receipt.hash,
-        transactionInfo: JSON.stringify(receipt),
       });
     } catch (error) {
-      console.error(error);
-      if (error.message.includes("nonce has already been used")) {
-        attempt++;
+      console.error(`Intento ${attempt + 1} falló: ${error.message}`);
+      attempt++;
+      if (
+        error.code === "NONCE_EXPIRED" ||
+        error.message.includes("nonce has already been used") ||
+        error.message.includes("nonce too low") ||
+        error.message.includes("replacement transaction underpriced") ||
+        error.message.includes("Transaction nonce is too distant")
+      ) {
+        if (attempt >= maxRetries) {
+          console.error(
+            "Máximo de reintentos alcanzado después de error de nonce."
+          );
+          return res.status(500).json({
+            error: "Error de nonce persistente tras reintentos.",
+            details: error.message,
+          });
+        }
+        console.warn(
+          `Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`
+        );
         await sleep(retryDelay);
+        contractManager.restartNonceManager();
+        console.log("NonceManager reiniciado. Reintentando...");
         continue;
+      } else {
+        console.error("Error no relacionado con nonce:", error);
+        return res.status(500).json({
+          error: `Error en la transacción: ${error.message}`,
+          code: error.code,
+        });
       }
-      return res.status(500).json({ error: error.message, object: error });
     }
   }
+  // Solo se llega aquí si maxRetries es 0 o hay un fallo lógico en el bucle
+  return res
+    .status(500)
+    .json({ error: "Se alcanzó el límite de reintentos sin éxito." });
 });
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
