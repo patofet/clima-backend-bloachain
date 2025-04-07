@@ -6,4 +6,3 @@ address=$(echo "$pub" | keccak-256sum -x -l | tr -d ' -' | tail -c 41)
 # Mostrar resultados
 echo "Clave privada: $priv"
 echo "Dirección: $address"
-

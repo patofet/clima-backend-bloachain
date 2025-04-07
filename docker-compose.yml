@@ -32,9 +32,10 @@ services:
       - "--rpc-ws-port=8546"
       - "--p2p-port=30303"
       - "--host-allowlist=*"
+      - "--tx-pool=sequenced"
       - "--rpc-http-cors-origins=*"
-      - "--rpc-http-api=ETH,NET,IBFT,WEB3"
-      - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
+      - "--rpc-http-api=ETH,NET,IBFT,WEB3,TXPOOL"
+      - "--rpc-ws-api=ETH,NET,IBFT,WEB3,TXPOOL"
       - "--bootnodes=enode://edfe064b5c4566357655dbd5034b179f2013e138bef0cfd73f24c3889bbca1e9388494ba35ae465d1ccc0c83f4331521d23503e96d451577f7f8cdc6924c0aed@10.42.0.4:30304,enode://17640b1d69a476dc225de4d083b80630d5e7fb4995e77f8eee940d6397e9e37ba7bc9206f8be1aa3848b7a1d34cb8abb208ce34fd1b15b437d0c193e89cdede2@10.42.0.5:30305"
     networks:
       besu-network:
@@ -62,6 +63,7 @@ services:
       - "--node-private-key-file=/opt/besu/key"
       - "--p2p-port=30304"
       - "--host-allowlist=*"
+      - "--tx-pool=sequenced"
       - "--rpc-http-api=ETH,NET,IBFT,WEB3"
       - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
       - "--rpc-http-cors-origins=*"
@@ -92,6 +94,7 @@ services:
       - "--node-private-key-file=/opt/besu/key"
       - "--p2p-port=30305"
       - "--host-allowlist=*"
+      - "--tx-pool=sequenced"
       - "--rpc-http-api=ETH,NET,IBFT,WEB3"
       - "--rpc-ws-api=ETH,NET,IBFT,WEB3"
       - "--rpc-http-cors-origins=*"

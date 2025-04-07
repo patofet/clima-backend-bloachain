@@ -4,12 +4,6 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 const DeployModule = buildModule("DeployModule", (m) => {
-  const doubleMappingStorage = m.contract("DoubleMappingStorage", [], {});
-
-  const certification = m.contract("Certification", [], {});
-
-  const solarOwnership = m.contract("SolarOwnership", [], {});
-
   const usersVerified = m.contract("UsersVerified", [], {});
 
   const certificationVerificated = m.contract(
@@ -19,9 +13,6 @@ const DeployModule = buildModule("DeployModule", (m) => {
   );
 
   return {
-    doubleMappingStorage,
-    certification,
-    solarOwnership,
     usersVerified,
     certificationVerificated,
   };

@@ -7,7 +7,7 @@ const SERVER_SECRET = process.env.PRIVATE_KEY;
 
 const router = express.Router();
 
-router.get("", (req, res) => {
+router.get("/", (req, res) => {
   try {
     const { address, message } = req.query;
     const timestamp = Math.floor(Date.now() / 1000); // Marca de tiempo en segundos
