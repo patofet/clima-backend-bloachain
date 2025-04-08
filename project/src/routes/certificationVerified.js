@@ -53,9 +53,9 @@ const createCertificationRouter = (
           "0x" + signature,
           timestamp
         );
+        console.log(`${at}: Transacción enviada, hash: ${tx.hash}`);
         const receipt = await tx.wait();
         console.log(`${at}: Transacción confirmada.`);
-
         return res.json({
           message: `Cadena certificada con éxito: ${certifiedString}`,
           transactionHash: receipt.hash,
@@ -74,7 +74,7 @@ const createCertificationRouter = (
           nonceErrorMessages.some((msg) => error.message?.includes(msg))
         ) {
           if (attempt >= maxRetries) {
-            console.error("Máximo de reintentos alcanzado.");
+            console.error("Máximo de reintentos alcanzado saliendo.");
             return res.status(500).json({
               error: "Error de nonce persistente tras reintentos.",
               details: error.message,
@@ -83,9 +83,9 @@ const createCertificationRouter = (
           console.warn(
             `Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`
           );
-          await sleep(retryDelay);
           restartNonceManager();
-          console.log("NonceManager reiniciado. Reintentando...");
+          await sleep(retryDelay);
+          console.warn("NonceManager reiniciado. Reintentando...");
           continue;
         } else if (error.code === "CALL_EXCEPTION") {
           console.warn("Transaction revertida o fallida detectada on-chain.");

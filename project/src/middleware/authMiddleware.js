@@ -17,6 +17,7 @@ async function authenticate(req, res, next) {
 
     const [type, credentials] = authorization.split(" ");
     if (type !== "Basic" || !credentials) {
+      console.error(`Authentication error: Expected Basic type, got ${type}`);
       return res
         .status(401)
         .json({ error: "Header Authorization must be of type Basic" });
@@ -29,18 +30,25 @@ async function authenticate(req, res, next) {
     const [address, timestamp, message] = encodedMessage.toString().split("/");
 
     if (!address) {
+      console.error("Authentication error: Missing address");
       return res.status(401).json({ error: "Unauthorized: Missing address" });
     }
     if (!timestamp) {
+      console.error("Authentication error: Missing timestamp");
       return res.status(401).json({ error: "Unauthorized: Missing timestamp" });
     }
-    if (Math.abs(Date.now() / 1000 - timestamp) > 60) {
+    const now = Math.floor(Date.now() / 1000);
+    if (Math.abs(now - timestamp) > 60) {
+      console.error(
+        `Authentication error: Timestamp expired, ${timestamp}, now: ${now}`
+      );
       return res.status(401).json({ error: "Unauthorized: Timestamp expired" });
     }
     // if (!message) {
     //   return res.status(401).json({ error: "Unauthorized: Missing message" });
     // }
     if (!signed) {
+      console.error("Authentication error: Missing signed");
       return res.status(401).json({ error: "Unauthorized: Missing signed" });
     }
     const expectedHash = CryptoJS.HmacSHA256(
@@ -50,6 +58,9 @@ async function authenticate(req, res, next) {
 
     const recoveredAddress = ethers.verifyMessage(expectedHash, signed);
     if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
+      console.error(
+        `Authentication error: Invalid signature, expected: ${address}, got: ${recoveredAddress}`
+      );
       return res.status(401).json({ error: "Unauthorized: Invalid signature" });
     }
 
