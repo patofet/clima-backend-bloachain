@@ -169,7 +169,7 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
         status: txDetails.status,
         blockNumber: txDetails.blockNumber,
         dateBlock: new Date(txDetails.block.timestamp * 1000).toLocaleString(),
-        transactionHash: txDetails.transactionHash,
+        transactionHash,
         functionName: txDetails.functionName,
         params: txDetails.functionParams,
         from: txDetails.from,
