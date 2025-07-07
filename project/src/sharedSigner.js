@@ -39,7 +39,7 @@ const restartSharedNonceManager = () => {
 const getTransactionDetails = async (transactionHash, contractAbi) => {
   try {
     const receipt = await provider.getTransactionReceipt(transactionHash);
-
+    const block = await provider.getBlock(receipt.blockNumber);
     const finalStatus = receipt.status === 1 ? "success" : "failed";
 
     const transaction = await provider.getTransaction(transactionHash);
@@ -67,6 +67,7 @@ const getTransactionDetails = async (transactionHash, contractAbi) => {
       functionName: decodedData.name,
       functionParams: decodedParamsData,
       transaction,
+      block,
     };
   } catch (error) {
     console.error(`getTransactionDetails: Error general para ${transactionHash}:`, error);
