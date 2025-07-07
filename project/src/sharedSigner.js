@@ -66,12 +66,10 @@ const getTransactionDetails = async (transactionHash, contractAbi) => {
       to: receipt.to,
       functionName: decodedData.name,
       functionParams: decodedParamsData,
+      transaction,
     };
   } catch (error) {
-    console.error(
-      `getTransactionDetails: Error general para ${transactionHash}:`,
-      error
-    );
+    console.error(`getTransactionDetails: Error general para ${transactionHash}:`, error);
     return {
       status: "error",
       message: "Error al consultar estado de la transacción.",
