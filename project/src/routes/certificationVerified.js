@@ -6,11 +6,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const createCertificationRouter = (
-  certificationVerifiedContract,
-  restartNonceManager,
-  getTransactionDetails
-) => {
+const createCertificationRouter = (certificationVerifiedContract, restartNonceManager, getTransactionDetails) => {
   const router = express.Router();
   let certificationAbi;
   let certificationAddress;
@@ -27,8 +23,7 @@ const createCertificationRouter = (
 
   router.post("/certify", authenticate, async (req, res) => {
     const { certifiedString, description } = req.body;
-    const { address, timestamp, message, signed, expectedHash } =
-      req.authentication;
+    const { address, timestamp, message, signed, expectedHash } = req.authentication;
     const maxRetries = 5;
     const retryDelay = 1000;
     let attempt = 0;
@@ -45,14 +40,7 @@ const createCertificationRouter = (
       try {
         const signature = signed.slice(2);
         console.log(`${at}: Llamando a certify...`);
-        const tx = await certificationVerifiedContract.certify(
-          certifiedString,
-          description,
-          address,
-          expectedHash,
-          "0x" + signature,
-          timestamp
-        );
+        const tx = await certificationVerifiedContract.certify(certifiedString, description, address, expectedHash, "0x" + signature, timestamp);
         console.log(`${at}: Transacción enviada, hash: ${tx.hash}`);
         const receipt = await tx.wait();
         console.log(`${at}: Transacción confirmada.`);
@@ -64,15 +52,8 @@ const createCertificationRouter = (
         console.error(`${at} falló: ${error.reason}`);
         attempt++;
         const nonceErrorCodes = ["NONCE_EXPIRED"];
-        const nonceErrorMessages = [
-          "nonce has already been used",
-          "nonce too low",
-          "Transaction nonce is too distant",
-        ];
-        if (
-          nonceErrorCodes.includes(error.code) ||
-          nonceErrorMessages.some((msg) => error.message?.includes(msg))
-        ) {
+        const nonceErrorMessages = ["nonce has already been used", "nonce too low", "Transaction nonce is too distant"];
+        if (nonceErrorCodes.includes(error.code) || nonceErrorMessages.some((msg) => error.message?.includes(msg))) {
           if (attempt >= maxRetries) {
             console.error("Máximo de reintentos alcanzado saliendo.");
             return res.status(500).json({
@@ -80,9 +61,7 @@ const createCertificationRouter = (
               details: error.message,
             });
           }
-          console.warn(
-            `Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`
-          );
+          console.warn(`Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`);
           restartNonceManager();
           await sleep(retryDelay);
           console.warn("NonceManager reiniciado. Reintentando...");
@@ -105,15 +84,12 @@ const createCertificationRouter = (
         }
       }
     }
-    return res
-      .status(500)
-      .json({ error: "Se alcanzó el límite de reintentos sin éxito." });
+    return res.status(500).json({ error: "Se alcanzó el límite de reintentos sin éxito." });
   });
 
   router.post("/certify-async", authenticate, async (req, res) => {
     const { certifiedString, description } = req.body;
-    const { address, timestamp, message, signed, expectedHash } =
-      req.authentication;
+    const { address, timestamp, message, signed, expectedHash } = req.authentication;
     const maxRetries = 5;
     const retryDelay = 1000;
     let attempt = 0;
@@ -129,22 +105,10 @@ const createCertificationRouter = (
       try {
         const signature = signed.slice(2);
         console.log(`Intento ${attempt + 1}: [Async] Llamando a certify...`);
-        const tx = await certificationVerifiedContract.certify(
-          certifiedString,
-          description,
-          address,
-          expectedHash,
-          "0x" + signature,
-          timestamp
-        );
-        console.log(
-          `Intento ${
-            attempt + 1
-          }: [Async] Transacción enviada via NonceManager, hash: ${tx.hash}`
-        );
+        const tx = await certificationVerifiedContract.certify(certifiedString, description, address, expectedHash, "0x" + signature, timestamp);
+        console.log(`Intento ${attempt + 1}: [Async] Transacción enviada via NonceManager, hash: ${tx.hash}`);
         return res.status(202).json({
-          message:
-            "Transacción enviada con éxito. Pendiente de confirmación por la red.",
+          message: "Transacción enviada con éxito. Pendiente de confirmación por la red.",
           status: "pending",
           transactionHash: tx.hash,
         });
@@ -152,15 +116,8 @@ const createCertificationRouter = (
         console.error(`${at} falló: ${error.reason}`);
         attempt++;
         const nonceErrorCodes = ["NONCE_EXPIRED"];
-        const nonceErrorMessages = [
-          "nonce has already been used",
-          "nonce too low",
-          "Transaction nonce is too distant",
-        ];
-        if (
-          nonceErrorCodes.includes(error.code) ||
-          nonceErrorMessages.some((msg) => error.message?.includes(msg))
-        ) {
+        const nonceErrorMessages = ["nonce has already been used", "nonce too low", "Transaction nonce is too distant"];
+        if (nonceErrorCodes.includes(error.code) || nonceErrorMessages.some((msg) => error.message?.includes(msg))) {
           if (attempt >= maxRetries) {
             console.error("Máximo de reintentos alcanzado.");
             return res.status(500).json({
@@ -168,9 +125,7 @@ const createCertificationRouter = (
               details: error.message,
             });
           }
-          console.warn(
-            `Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`
-          );
+          console.warn(`Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`);
           await sleep(retryDelay);
           restartNonceManager();
           console.log("NonceManager reiniciado. Reintentando...");
@@ -194,8 +149,7 @@ const createCertificationRouter = (
       }
     }
     return res.status(500).json({
-      error:
-        "Se alcanzó el límite de reintentos sin poder enviar la transacción.",
+      error: "Se alcanzó el límite de reintentos sin poder enviar la transacción.",
     });
   });
 
@@ -206,15 +160,11 @@ const createCertificationRouter = (
     }
 
     try {
-      const txDetails = await getTransactionDetails(
-        TransactionHash,
-        certificationAbi
-      );
+      const txDetails = await getTransactionDetails(TransactionHash, certificationAbi);
       if (txDetails.status === "error") {
-        return res
-          .status(500)
-          .json({ error: txDetails.message || "Error al obtener detalles." });
+        return res.status(500).json({ error: txDetails.message || "Error al obtener detalles." });
       }
+      console.log(`Detalles de transacción obtenidos: ${JSON.stringify(txDetails)}`);
       return res.render("certificateDetails", {
         status: txDetails.status,
         blockNumber: txDetails.blockNumber,
@@ -240,14 +190,9 @@ const createCertificationRouter = (
     }
 
     try {
-      const txDetails = await getTransactionDetails(
-        TransactionHash,
-        certificationAbi
-      );
+      const txDetails = await getTransactionDetails(TransactionHash, certificationAbi);
       if (txDetails.status === "error") {
-        return res
-          .status(500)
-          .json({ error: txDetails.message || "Error al obtener detalles." });
+        return res.status(500).json({ error: txDetails.message || "Error al obtener detalles." });
       }
       return res.status(200, {
         status: txDetails.status,
