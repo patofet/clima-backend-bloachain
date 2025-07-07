@@ -164,7 +164,6 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
       if (txDetails.status === "error") {
         return res.status(500).json({ error: txDetails.message || "Error al obtener detalles." });
       }
-      console.log(`Detalles de transacción obtenidos: ${JSON.stringify(txDetails)}`);
       return res.render("certificateDetails", {
         status: txDetails.status,
         blockNumber: txDetails.blockNumber,
