@@ -12,16 +12,34 @@
         padding: 20px;
         border: 1px solid #ccc;
       }
+      .header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative; /* Necesario para posicionar los logos de forma absoluta */
+        margin-bottom: 20px;
+      }
+      .logos {
+        position: absolute;
+        right: 0; /* Alinea los logos a la derecha del todo */
+        display: flex;
+        gap: 15px;
+        align-items: center;
+      }
+      .logos img {
+        height: 50px;
+        width: auto;
+      }
       h1 {
-        text-align: center;
+        margin: 0;
       }
       .detail-item {
-        margin-bottom: 10px;
+        margin-bottom: 30px;
       }
       .detail-label {
         font-weight: bold;
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 10px;
       }
       .detail-value {
         padding: 8px;
@@ -42,11 +60,27 @@
   </head>
   <body>
     <div class="container">
-      <h1>Detalles del Certificado</h1>
+      <div class="header">
+        <div class="logos">
+          <img src="https://tecnio.org/wp-content/uploads/2023/03/logos_EXIT-1200x900.jpg" alt="Logo Tecnio" />
+          <img src="https://www.incibe.es/sites/default/files/2024-07/UdG_dues_linies_centrat_blau_page-0001_0.png" alt="Logo UdG" />
+        </div>
+        <h1>Detalles del Certificado</h1>
+      </div>
 
       <div class="detail-item">
         <span class="detail-label">Número de Bloque:</span>
         <span class="detail-value"><%= blockNumber %></span>
+      </div>
+
+      <div class="detail-item">
+        <span class="detail-label">Fecha de Bloque:</span>
+        <span class="detail-value"><%= dateBlock %></span>
+      </div>
+
+      <div class="detail-item">
+        <span class="detail-label">Hash de la transacción:</span>
+        <span class="detail-value"><%= transactionHash %></span>
       </div>
 
       <div class="detail-item">
