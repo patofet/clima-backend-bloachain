@@ -10,22 +10,16 @@ const createUserRouter = (usersContract, restartNonceManager) => {
   const maxRetries = 5;
   const retryDelay = 1000;
 
-  router.post("/add-user", authenticate, isAdmin, async (req, res) => {
+  router.post("/add-user", authenticate, async (req, res) => {
     const { userAddress } = req.body;
     if (!userAddress || !ethers.isAddress(userAddress)) {
-      return res
-        .status(400)
-        .json({ error: "Dirección de usuario inválida o faltante." });
+      return res.status(400).json({ error: "Dirección de usuario inválida o faltante." });
     }
     let attempt = 0;
 
     while (attempt < maxRetries) {
       try {
-        console.log(
-          `Intento ${
-            attempt + 1
-          }: Llamando a usersContract.addUser(${userAddress})`
-        );
+        console.log(`Intento ${attempt + 1}: Llamando a usersContract.addUser(${userAddress})`);
         const tx = await usersContract.addUser(userAddress);
         console.log(`Intento ${attempt + 1}: addUser Tx enviada: ${tx.hash}`);
         const receipt = await tx.wait();
@@ -38,15 +32,8 @@ const createUserRouter = (usersContract, restartNonceManager) => {
         console.error(`${at} falló: ${error.reason}`);
         attempt++;
         const nonceErrorCodes = ["NONCE_EXPIRED"];
-        const nonceErrorMessages = [
-          "nonce has already been used",
-          "nonce too low",
-          "Transaction nonce is too distant",
-        ];
-        if (
-          nonceErrorCodes.includes(error.code) ||
-          nonceErrorMessages.some((msg) => error.message?.includes(msg))
-        ) {
+        const nonceErrorMessages = ["nonce has already been used", "nonce too low", "Transaction nonce is too distant"];
+        if (nonceErrorCodes.includes(error.code) || nonceErrorMessages.some((msg) => error.message?.includes(msg))) {
           if (attempt >= maxRetries) {
             console.error("Máximo de reintentos alcanzado.");
             return res.status(500).json({
@@ -54,9 +41,7 @@ const createUserRouter = (usersContract, restartNonceManager) => {
               details: error.message,
             });
           }
-          console.warn(
-            `Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`
-          );
+          console.warn(`Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`);
           await sleep(retryDelay);
           restartNonceManager();
           console.log("NonceManager reiniciado. Reintentando...");
@@ -90,15 +75,9 @@ const createUserRouter = (usersContract, restartNonceManager) => {
 
     while (attempt < maxRetries) {
       try {
-        console.log(
-          `Intento ${
-            attempt + 1
-          }: Llamando a usersContract.removeUser(${userAddress})`
-        );
+        console.log(`Intento ${attempt + 1}: Llamando a usersContract.removeUser(${userAddress})`);
         const tx = await usersContract.removeUser(userAddress);
-        console.log(
-          `Intento ${attempt + 1}: removeUser Tx enviada: ${tx.hash}`
-        );
+        console.log(`Intento ${attempt + 1}: removeUser Tx enviada: ${tx.hash}`);
         const receipt = await tx.wait();
         console.log(`Intento ${attempt + 1}: removeUser Tx confirmada.`);
         return res.json({
@@ -109,15 +88,8 @@ const createUserRouter = (usersContract, restartNonceManager) => {
         console.error(`${at} falló: ${error.reason}`);
         attempt++;
         const nonceErrorCodes = ["NONCE_EXPIRED"];
-        const nonceErrorMessages = [
-          "nonce has already been used",
-          "nonce too low",
-          "Transaction nonce is too distant",
-        ];
-        if (
-          nonceErrorCodes.includes(error.code) ||
-          nonceErrorMessages.some((msg) => error.message?.includes(msg))
-        ) {
+        const nonceErrorMessages = ["nonce has already been used", "nonce too low", "Transaction nonce is too distant"];
+        if (nonceErrorCodes.includes(error.code) || nonceErrorMessages.some((msg) => error.message?.includes(msg))) {
           if (attempt >= maxRetries) {
             console.error("Máximo de reintentos alcanzado.");
             return res.status(500).json({
@@ -125,9 +97,7 @@ const createUserRouter = (usersContract, restartNonceManager) => {
               details: error.message,
             });
           }
-          console.warn(
-            `Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`
-          );
+          console.warn(`Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`);
           await sleep(retryDelay);
           restartNonceManager();
           console.log("NonceManager reiniciado. Reintentando...");
@@ -151,8 +121,7 @@ const createUserRouter = (usersContract, restartNonceManager) => {
       }
     }
     return res.status(500).json({
-      error:
-        "Se alcanzó el límite de reintentos sin éxito al eliminar usuario.",
+      error: "Se alcanzó el límite de reintentos sin éxito al eliminar usuario.",
     });
   });
 
@@ -162,25 +131,16 @@ const createUserRouter = (usersContract, restartNonceManager) => {
 
     while (attempt < maxRetries) {
       try {
-        console.log(
-          `Intento ${
-            attempt + 1
-          }: Llamando a usersContract.addPetition(${userAddress})`
-        );
+        console.log(`Intento ${attempt + 1}: Llamando a usersContract.addPetition(${userAddress})`);
         const tx = await usersContract.addPetition(userAddress);
-        console.log(
-          `Intento ${attempt + 1}: addPetition Tx enviada: ${tx.hash}`
-        );
+        console.log(`Intento ${attempt + 1}: addPetition Tx enviada: ${tx.hash}`);
         const receipt = await tx.wait();
         console.log(`Intento ${attempt + 1}: addPetition Tx confirmada.`);
         let eventData = {};
         try {
-          const eventFragment =
-            usersContract.interface.getEvent("AddedPetition");
+          const eventFragment = usersContract.interface.getEvent("AddedPetition");
           const eventTopic = eventFragment.topicHash;
-          const eventLog = receipt.logs?.find(
-            (log) => log.topics[0] === eventTopic
-          );
+          const eventLog = receipt.logs?.find((log) => log.topics[0] === eventTopic);
           if (eventLog) {
             const parsed = usersContract.interface.parseLog(eventLog);
             eventData = {
@@ -188,9 +148,7 @@ const createUserRouter = (usersContract, restartNonceManager) => {
               index: parsed.args[1].toString(),
             };
           } else {
-            console.warn(
-              "Evento AddedPetition no encontrado en los logs del recibo."
-            );
+            console.warn("Evento AddedPetition no encontrado en los logs del recibo.");
           }
         } catch (parseError) {
           console.error("Error parseando evento AddedPetition:", parseError);
@@ -202,30 +160,17 @@ const createUserRouter = (usersContract, restartNonceManager) => {
           ...eventData,
         });
       } catch (error) {
-        console.error(
-          `Intento ${attempt + 1} addPetition falló: ${error.message}`
-        );
+        console.error(`Intento ${attempt + 1} addPetition falló: ${error.message}`);
         attempt++;
-        if (
-          error.code === "NONCE_EXPIRED" ||
-          error.message.includes("nonce has already been used") ||
-          error.message.includes("nonce too low") ||
-          error.message.includes("replacement transaction underpriced") ||
-          error.message.includes("Transaction nonce is too distant")
-        ) {
+        if (error.code === "NONCE_EXPIRED" || error.message.includes("nonce has already been used") || error.message.includes("nonce too low") || error.message.includes("replacement transaction underpriced") || error.message.includes("Transaction nonce is too distant")) {
           if (attempt >= maxRetries) {
-            console.error(
-              "addPetition: Máximo de reintentos alcanzado después de error de nonce."
-            );
+            console.error("addPetition: Máximo de reintentos alcanzado después de error de nonce.");
             return res.status(500).json({
-              error:
-                "Error de nonce persistente tras reintentos al añadir petición.",
+              error: "Error de nonce persistente tras reintentos al añadir petición.",
               details: error.message,
             });
           }
-          console.warn(
-            `addPetition: Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando...`
-          );
+          console.warn(`addPetition: Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando...`);
           await sleep(retryDelay);
           restartNonceManager();
           console.log("NonceManager reiniciado. Reintentando addPetition...");
@@ -255,9 +200,7 @@ const createUserRouter = (usersContract, restartNonceManager) => {
     } catch (error) {
       console.error(`Error en GET /pending-user/${index}:`, error);
       if (error.message.includes("index out of bounds")) {
-        return res
-          .status(404)
-          .json({ error: `Índice ${index} fuera de rango.` });
+        return res.status(404).json({ error: `Índice ${index} fuera de rango.` });
       }
       res.status(500).json({
         error: "Error al obtener usuario pendiente.",
@@ -273,9 +216,7 @@ const createUserRouter = (usersContract, restartNonceManager) => {
       res.json({ userAddress, isVerified });
     } catch (error) {
       console.error(`Error en GET /is-verified/${userAddress}:`, error);
-      res
-        .status(500)
-        .json({ error: "Error al verificar usuario.", details: error.message });
+      res.status(500).json({ error: "Error al verificar usuario.", details: error.message });
     }
   });
 

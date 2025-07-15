@@ -2,6 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: main.py",
+      "type": "debugpy",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/project",
+      "program": "${workspaceFolder}/project/python-scripts/main.py",
+      "python": "${workspaceFolder}/project/python-scripts/.venv/bin/python",
+      "console": "integratedTerminal"
+    },
+    {
       "name": "Dev",
       "type": "node",
       "request": "launch",

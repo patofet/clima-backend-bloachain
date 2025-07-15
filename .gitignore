@@ -51,3 +51,5 @@ Thumbs.db
 /data/validator1/
 /data/validator2/
 /data/validator3/
+
+project/python-scripts/.venv
