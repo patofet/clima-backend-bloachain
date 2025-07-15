@@ -29,7 +29,7 @@ const createUserRouter = (usersContract, restartNonceManager) => {
           transactionHash: receipt.transactionHash,
         });
       } catch (error) {
-        console.error(`${at} falló: ${error.reason}`);
+        console.error(`${attempt + 1} falló: ${error.reason}`);
         attempt++;
         const nonceErrorCodes = ["NONCE_EXPIRED"];
         const nonceErrorMessages = ["nonce has already been used", "nonce too low", "Transaction nonce is too distant"];
