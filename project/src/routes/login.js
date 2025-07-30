@@ -10,7 +10,7 @@ const router = express.Router();
 router.get("/", (req, res) => {
   try {
     const { address, message } = req.query;
-    const timestamp = Math.floor(Date.now() / 1000); // Marca de tiempo en segundos
+    const timestamp = Math.floor(Date.now() / 1000) - 5;
     const encodedMessage = `${address}/${timestamp}/${message}`;
     const hash = CryptoJS.HmacSHA256(encodedMessage, SERVER_SECRET).toString();
 

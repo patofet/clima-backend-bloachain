@@ -1,4 +1,5 @@
-# pip install requests eth-account safe-pysha3 eth-keys
+# pip install requests safe-pysha3 eth-keys
+import os
 import sha3
 import requests
 import base64
@@ -7,7 +8,7 @@ from eth_keys.main import PrivateKey
 
 base_url = "http://magiinterface.udg.edu:3000"
 
-def generar_claves_ethereum_alternativa(semilla_texto: str) -> dict:
+def generar_claves_ethereum(semilla_texto: str) -> dict:
     k = sha3.keccak_256()
     k.update(semilla_texto.encode('utf-8'))
     pk = PrivateKey(k.digest())
@@ -123,15 +124,32 @@ def certify_string(public_address: str, private_key: str, message: str) -> dict:
     
 # --- Ejemplo de uso ---
 if __name__ == "__main__":
-    numero_entero = random.randint(0, 9999999999)
-    claves = generar_claves_ethereum_alternativa(f"esta es mi frase secreta para generar claves {numero_entero}")
-    
-    print(f"Clave Privada: {claves['private_key']}")
-    print(f"Dirección Ethereum: {claves['public_key']}")
+    ARCHIVO_CLAVES = 'ethereum_keys.txt'
+    numero_entero_seed = random.randint(0, 9999999999)
+    if os.path.exists(ARCHIVO_CLAVES):
+        print(f"Cargando claves desde el archivo: {ARCHIVO_CLAVES}")
+        with open(ARCHIVO_CLAVES, 'r') as f:
+            linea_privada = f.readline()
+            linea_publica = f.readline()
+            private_key = linea_privada.split(': ')[1].strip()
+            public_key = linea_publica.split(': ')[1].strip()
+    else:
+        print(f"El archivo {ARCHIVO_CLAVES} no existe. Generando nuevas claves...")
+        claves_generadas = generar_claves_ethereum(f"esta es mi frase secreta para generar claves {numero_entero_seed}")
+        private_key = claves_generadas['private_key']
+        public_key = claves_generadas['public_key']
+        print("Guardando nuevas claves en el archivo...")
+        with open(ARCHIVO_CLAVES, 'w') as f:
+            f.write(f"Clave Privada: {private_key}\n")
+            f.write(f"Dirección Ethereum: {public_key}\n")
+        res_add_user = registrar_usuario(public_key, private_key)
+        print(res_add_user)
 
-    res_add_user = registrar_usuario(claves['public_key'], claves['private_key'])
-    print(res_add_user)
+    print("\n--- Claves en uso ---")
+    print(f"Clave Privada: {private_key}")
+    print(f"Dirección Ethereum: {public_key}")
+    print(f"Numero aleatorio: {numero_entero_seed}")
 
-    res_certify = certify_string(claves['public_key'], claves['private_key'], f"cccc {numero_entero}")
+    res_certify = certify_string(public_key, private_key, f"cccc {numero_entero_seed}")
     print(res_certify)
 
