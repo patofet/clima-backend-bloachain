@@ -1,20 +1,14 @@
 const http = require("http");
 const app = require("./app");
 
-const {
-  initializeSharedSigner,
-  restartSharedNonceManager,
-  getSigner,
-  getTransactionDetails,
-} = require("./sharedSigner");
+const { initializeSharedSigner, restartSharedNonceManager, getSigner, getTransactionDetails } = require("./sharedSigner");
 
-const {
-  initCertificationVerificatedContract,
-} = require("./contracts/CertificationVerificated");
+const { initCertificationVerificatedContract } = require("./contracts/CertificationVerificated");
 const { initUsersVerifiedContract } = require("./contracts/UsersVerified");
 
 const createCertificationVerifiedRouter = require("./routes/certificationVerified");
 const loginRouter = require("./routes/login");
+const drissaRouter = require("./routes/drissa");
 const createUserRouter = require("./routes/userVerified");
 
 const PORT = process.env.PORT || 3000;
@@ -50,11 +44,7 @@ try {
 let certificationVerifiedRouter;
 let userRouter;
 try {
-  certificationVerifiedRouter = createCertificationVerifiedRouter(
-    certificationVerifiedContract,
-    restartSharedNonceManager,
-    getTransactionDetails
-  );
+  certificationVerifiedRouter = createCertificationVerifiedRouter(certificationVerifiedContract, restartSharedNonceManager, getTransactionDetails);
   userRouter = createUserRouter(usersContract, restartSharedNonceManager);
   console.log("✅ Rutas creados correctamente.");
 } catch (error) {
@@ -69,6 +59,8 @@ try {
   console.log("🛣️  Router de usuarios montado en /userVerified");
   app.use("/login", loginRouter);
   console.log("🛣️  Router de login montado en /login");
+  app.use("/drissa", drissaRouter);
+  console.log("🛣️  Router de drissa montado en /drissa");
 } catch (error) {
   console.error("💥 ¡ERROR al montar los routers!", error);
   process.exit(1);

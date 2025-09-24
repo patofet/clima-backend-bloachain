@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ca">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= product.nomProducte || "Detall del Producte" %> - Fundació Drissa</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        line-height: 1.6;
+        margin: 20px;
+        background-color: #f9f9f9;
+        color: #333;
+      }
+      header,
+      footer {
+        background-color: #e9e9e9;
+        padding: 15px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      header h1 {
+        margin: 0;
+        color: #2c5b2e;
+      }
+      section {
+        background-color: #fff;
+        margin-bottom: 25px;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        color: #38761d; /* Verd més fosc per als títols de secció */
+        border-bottom: 2px solid #d9ead3; /* Línia subtil sota el títol */
+        padding-bottom: 10px;
+        margin-top: 0;
+      }
+      h3 {
+        color: #666;
+        margin-top: 20px;
+      }
+      .info-item {
+        margin-bottom: 10px;
+      }
+      .info-item strong {
+        color: #555;
+      }
+      ul {
+        list-style-type: disc;
+        margin-left: 20px;
+        padding-left: 0;
+      }
+      li {
+        margin-bottom: 8px;
+      }
+      .frase-destacada {
+        font-style: italic;
+        font-weight: bold;
+        color: #2c5b2e; /* Color verd fosc */
+        background-color: #e6f4ea; /* Fons verd molt clar */
+        padding: 15px;
+        border-left: 5px solid #38761d;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+      .logo-container img {
+        max-width: 100px;
+        margin: 10px;
+        vertical-align: middle;
+      }
+      .certificats-link a {
+        color: #38761d;
+        text-decoration: none;
+      }
+      .certificats-link a:hover {
+        text-decoration: underline;
+      }
+      .blockchain-seal {
+        font-weight: bold;
+        color: #2a7a9a;
+        margin-top: 15px;
+      }
+      .project-axes {
+        background-color: #d9ead3; /* Fons verd clar per destacar */
+        padding: 15px;
+        border-radius: 5px;
+      }
+      .image-gallery img,
+      .video-container iframe,
+      .video-container video {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin-bottom: 10px;
+      }
+      .image-gallery {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .image-gallery img {
+        max-width: 200px; /* O la mida que prefereixis */
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Informació Detallada del Producte</h1>
+    </header>
+
+    <main>
+      <section id="identitat-producte">
+        <h2>1. Identitat del Producte</h2>
+
+        <div class="info-item">
+          <strong>Nom del producte:</strong>
+          <span><%= product.nomProducte || "No especificat" %></span>
+        </div>
+
+        <div class="info-item">
+          <strong>Varietat i tipus de cultiu:</strong>
+          <span><%= product.varietatTipus || "Ecològic" %></span>
+        </div>
+
+        <div class="info-item">
+          <strong>Data de collita:</strong>
+          <span><%= product.dataCollita ? new Date(product.dataCollita).toLocaleDateString('ca-ES') : "No especificada" %></span>
+        </div>
+      </section>
+
+      <section id="origen-proximitat">
+        <h2>2. Origen i Proximitat</h2>
+
+        <div class="info-item">
+          <strong>Ubicació de l’horta:</strong>
+          <span><%= product.ubicacioHorta || "Horta Biodrissa – Campllong" %></span>
+        </div>
+
+        <div class="info-item">
+          <strong>KM de distància aproximada fins al punt de venda:</strong>
+          <span><%= product.kmDistancia || "N/A" %> km</span>
+        </div>
+
+        <h3>Certificats i Registres Relacionats amb l'Origen i la Proximitat:</h3>
+        <p>
+          <strong>La Fundació està inscrita en els següents registres:</strong>
+        </p>
+        <ul>
+          <li>Registre de Fundacions Privades de la Generalitat de Catalunya amb el número 1339</li>
+          <li>Registre de Grups d’Interès de l’Administració de la Generalitat i del Sector Públic. Número d’indicador 356</li>
+          <li>Registre Centre Especial de Treball amb el número T00208</li>
+          <li>Registre Pla d’igualtat amb codi 17100122112022</li>
+          <li>Registre Oficial de Productors i Operadors de Mitjans de Defensa Fitosanitària de Catalunya (ROPCAT) amb el número ST 170065</li>
+          <li>Registre d’Indústries Agràries i Alimentàries de Catalunya amb el número RIAAC-000310484</li>
+          <li>Registre Empreses Acreditades (REA) número 09000033465</li>
+          <li>Registre licitadors (RELI)</li>
+          <li>Registre d’entitats, serveis i establiments socials</li>
+          <li>Registre d’entitat E03681</li>
+          <li>Registre Programa Autonomia a la Pròpia Llar S06456</li>
+          <li>Registre Servei Atenció Domiciliaria S09007</li>
+          <li>Registre Servei Llar amb Suport S06468</li>
+          <li>Registre Servei Prelaboral Girona S06613</li>
+          <li>Registre Servei Prelaboral Figueres S09371</li>
+          <li>Registre Servei Prelaboral Santa Coloma Farnés S09370</li>
+        </ul>
+
+        <p>
+          <strong>La Fundació disposa també dels següents certificats:</strong>
+        </p>
+        <ul>
+          <li>Certificat de venda de proximitat</li>
+          <li>Certificat de classificació empresarial</li>
+          <li>Certificat CCPAE (Consell Català de la Producció Agrària Ecològica)</li>
+          <li>Certificat ISO 14001:2015 ES/1415598</li>
+          <li>Certificat ISO 9001:2015 número ES/1415599</li>
+          <li>Certificat de participació en el Programa de Millora en la Governança Democràtica (La Confederació)</li>
+          <li>Certificat de garantia d’origen d’electricitat</li>
+          <li>Acord del Codi de Bones Pràctiques Comercials al llarg de la Cadena Alimentària a Catalunya</li>
+        </ul>
+      </section>
+
+      <section id="valor-social">
+        <h2>3. Valor Social</h2>
+        <p class="frase-destacada">Amb la teva compra <strong>conscient</strong> contribueixes a la inclusió social.</p>
+        <p class="frase-destacada">Amb la teva compra contribueixes a la inclusió social i laboral de persones amb problemàtica de salut mental.</p>
+
+        <div class="info-item">
+          <strong>Número aproximat de persones que hi han intervingut:</strong>
+          <span><%= product.personesIntervingut || "N/A" %></span>
+        </div>
+
+        <div class="certificats-link">
+          <p>
+            <strong>Més informació sobre els nostres certificats socials:</strong>
+          </p>
+          <a href="https://fundaciodrissa.com/registres-i-certificacions/" target="_blank">Consulta els registres i certificacions de la Fundació Drissa</a>
+        </div>
+      </section>
+
+      <section id="compromis-sostenibilitat">
+        <h2>4. Compromís amb la Sostenibilitat</h2>
+        <div class="info-item">
+          <strong>Pràctiques sostenibles utilitzades:</strong>
+          <p>Utilitzem compostatge propi, rotació de cultius i no fem servir pesticides químics per garantir la màxima qualitat i respecte pel medi ambient.</p>
+        </div>
+        <div class="info-item">
+          <strong>Possibles estalvis mediambientals (derivats de la ISO 14001):</strong>
+          <p>Gràcies a les nostres pràctiques, hem reduït el consum d'aigua en un 15% i l'ús de plàstics en un 30% en l'embalatge.</p>
+        </div>
+      </section>
+
+      <section id="altres">
+        <h2>5. Altres</h2>
+
+        <% if (product.imatgesHorta && product.imatgesHorta.length > 0) { %>
+        <h3>Imatges de l’horta:</h3>
+        <div class="image-gallery">
+          <% product.imatgesHorta.forEach(function(imatge) { %>
+          <img src="<%= imatge.src %>" alt="<%= imatge.alt %>" />
+          <% }); %>
+        </div>
+        <% } %>
+
+        <h3 style="margin-top: 15px">Testimoni d’un treballador/a:</h3>
+        <blockquote style="border-left: 3px solid #ccc; padding-left: 15px; margin-left: 0; font-style: italic">
+          <p>Formar part d'aquest projecte m'ha donat una nova oportunitat i m'ha ensenyat el valor de treballar la terra amb respecte.</p>
+          <footer>-"Maria G., treballadora de l'horta"</footer>
+        </blockquote>
+
+        <% if (product.video && product.video.url) { %>
+        <h3 style="margin-top: 15px">Vídeo de presentació:</h3>
+        <div class="video-container">
+          <% if (product.video.isEmbed) { %>
+          <iframe width="560" height="315" src="<%= product.video.url %>" title="<%= product.video.titol || 'Vídeo' %>" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          <% } else { %>
+          <p>
+            Enllaç al vídeo:
+            <a href="<%= product.video.url %>" target="_blank"><%= product.video.titol || 'Veure vídeo' %></a>
+          </p>
+          <% } %>
+        </div>
+        <% } %>
+
+        <div class="blockchain-seal">
+          <p>🛡️ Producte amb traçabilitat verificada per BlockchainChain</p>
+        </div>
+
+        <% if (product.logos && product.logos.length > 0) { %>
+        <div class="logo-container" style="margin-top: 20px">
+          <h3>Logotips:</h3>
+          <% product.logos.forEach(function(logo) { %>
+          <img src="<%= logo.src %>" alt="<%= logo.alt %>" />
+          <% }); %>
+        </div>
+        <% } %>
+      </section>
+
+      <section id="eixos-projecte" class="project-axes">
+        <h2>Eixos del Projecte Fundació Drissa</h2>
+        <ul>
+          <li>Promoció d’hàbits saludables</li>
+          <li>Potenciació de l’economia local i de proximitat</li>
+          <li>Formació contínua</li>
+          <li>Innovació tecnològica</li>
+          <li>Minimització de l’impacte ambiental</li>
+          <li>Sinèrgies amb entitats del territori</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>© <span id="currentYear"></span> Fundació Drissa - Tots els drets reservats.</p>
+      <script>
+        document.getElementById("currentYear").textContent = new Date().getFullYear();
+      </script>
+    </footer>
+  </body>
+</html>
