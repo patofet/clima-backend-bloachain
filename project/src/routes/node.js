@@ -46,4 +46,14 @@ router.get("/estado-red", async (req, res) => {
     res.status(500).send("Error al cargar la información de la red");
   }
 });
+router.get("/api/estado-red", async (req, res) => {
+  try {
+    const nodePromises = nodes.map((node) => getNodeStatus(node));
+    const nodesData = await Promise.all(nodePromises);
+    res.json(nodesData);
+  } catch (error) {
+    console.error("Error en la API de estado de red:", error);
+    res.status(500).json({ error: "Error al obtener la información de los nodos" });
+  }
+});
 module.exports = router;
