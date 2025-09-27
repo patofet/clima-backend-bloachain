@@ -5,7 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard de Nodos Ethereum (En vivo)</title>
     <style>
-      /* ... (Estilos CSS idénticos a la versión anterior) ... */
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background-color: #f4f7f9;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 {
+        color: #2c3e50;
+        text-align: center;
+        margin-bottom: 40px;
+      }
+      .nodes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 25px;
+      }
+      .node-card {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-left: 5px solid;
+        transition: transform 0.2s;
+      }
+      .node-card:hover {
+        transform: translateY(-5px);
+      }
+      .node-card.online {
+        border-left-color: #2ecc71; /* Verde */
+      }
+      .node-card.offline {
+        border-left-color: #e74c3c; /* Rojo */
+      }
+      .card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #ecf0f1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .card-header h2 {
+        margin: 0;
+        color: #34495e;
+        font-size: 1.3em;
+      }
+      .status-badge {
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.8em;
+        font-weight: bold;
+        color: white;
+      }
+      .status-badge.online {
+        background-color: #2ecc71;
+      }
+      .status-badge.offline {
+        background-color: #e74c3c;
+      }
+      .node-info {
+        padding: 20px;
+      }
+      .node-info dl {
+        margin: 0;
+      }
+      .node-info dt {
+        color: #7f8c8d;
+        font-weight: bold;
+        float: left;
+        width: 45%;
+        padding: 8px 0;
+      }
+      .node-info dd {
+        color: #2c3e50;
+        margin-left: 50%;
+        padding: 8px 0;
+        font-family: "Courier New", Courier, monospace;
+        word-wrap: break-word;
+      }
+      .node-info dd:after {
+        content: "";
+        display: table;
+        clear: both;
+      }
+      .error-message {
+        padding: 20px;
+        color: #e74c3c;
+        font-weight: bold;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
