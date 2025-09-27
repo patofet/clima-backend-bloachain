@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard de Nodos Ethereum</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background-color: #f4f7f9;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 {
+        color: #2c3e50;
+        text-align: center;
+        margin-bottom: 40px;
+      }
+      .nodes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 25px;
+      }
+      .node-card {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-left: 5px solid;
+        transition: transform 0.2s;
+      }
+      .node-card:hover {
+        transform: translateY(-5px);
+      }
+      .node-card.online {
+        border-left-color: #2ecc71; /* Verde */
+      }
+      .node-card.offline {
+        border-left-color: #e74c3c; /* Rojo */
+      }
+      .card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #ecf0f1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .card-header h2 {
+        margin: 0;
+        color: #34495e;
+        font-size: 1.3em;
+      }
+      .status-badge {
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.8em;
+        font-weight: bold;
+        color: white;
+      }
+      .status-badge.online {
+        background-color: #2ecc71;
+      }
+      .status-badge.offline {
+        background-color: #e74c3c;
+      }
+      .node-info {
+        padding: 20px;
+      }
+      .node-info dl {
+        margin: 0;
+      }
+      .node-info dt {
+        color: #7f8c8d;
+        font-weight: bold;
+        float: left;
+        width: 45%;
+        padding: 8px 0;
+      }
+      .node-info dd {
+        color: #2c3e50;
+        margin-left: 50%;
+        padding: 8px 0;
+        font-family: "Courier New", Courier, monospace;
+        word-wrap: break-word;
+      }
+      .node-info dd:after {
+        content: "";
+        display: table;
+        clear: both;
+      }
+      .error-message {
+        padding: 20px;
+        color: #e74c3c;
+        font-weight: bold;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>📊 Dashboard de la Red Ethereum</h1>
+
+      <div class="nodes-grid">
+        <% if (typeof nodes !== 'undefined' && nodes.length > 0) { %> <% nodes.forEach(function(node) { %>
+        <div class="node-card <%= node.isOnline ? 'online' : 'offline' %>">
+          <div class="card-header">
+            <h2><%= node.name %></h2>
+            <span class="status-badge <%= node.isOnline ? 'online' : 'offline' %>"> <%= node.isOnline ? 'Online' : 'Offline' %> </span>
+          </div>
+
+          <% if (node.isOnline) { %>
+          <div class="node-info">
+            <dl>
+              <dt>Último Bloque</dt>
+              <dd>#<%= node.blockNumber %></dd>
+              <dt>Sincronizando</dt>
+              <dd><%= node.isSyncing %></dd>
+              <dt>Peers Conectados</dt>
+              <dd><%= node.peerCount %></dd>
+              <dt>Network ID</dt>
+              <dd><%= node.networkId %></dd>
+              <dt>Precio del Gas</dt>
+              <dd><%= parseFloat(node.gasPrice).toFixed(2) %> Gwei</dd>
+              <dt>Hashrate</dt>
+              <dd><%= node.hashrate %></dd>
+              <dt>Dirección Coinbase</dt>
+              <dd><%= node.coinbase %></dd>
+              <dt>Versión del Cliente</dt>
+              <dd><%= node.clientVersion %></dd>
+              <dt>Endpoint RPC</dt>
+              <dd><%= node.url %></dd>
+            </dl>
+          </div>
+          <% } else { %>
+          <div class="error-message">
+            <p><%= node.error %></p>
+            <p style="font-family: 'Courier New', Courier, monospace; font-size: 0.9em; color: #95a5a6"><%= node.url %></p>
+          </div>
+          <% } %>
+        </div>
+        <% }); %> <% } else { %>
+        <p>No hay información de nodos para mostrar.</p>
+        <% } %>
+      </div>
+    </div>
+  </body>
+</html>
