@@ -43,6 +43,7 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
     }
 
     while (attempt < maxRetries) {
+      const attemptStartTime = Date.now();
       const at = attempt + 1;
       try {
         const signature = signed.slice(2);
