@@ -155,7 +155,7 @@
       async function fetchAndUpdateNodes() {
         loadingSpinner.style.display = "inline"; // Muestra el spinner de carga
         try {
-          const response = await fetch("/api/estado-red");
+          const response = await fetch("/node/api/estado-red");
           if (!response.ok) {
             throw new Error("La respuesta de la red no fue correcta");
           }
