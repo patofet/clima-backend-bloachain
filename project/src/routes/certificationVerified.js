@@ -22,6 +22,7 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
   }
 
   router.post("/certify", authenticate, async (req, res) => {
+    const startTime = Date.now();
     const { certifiedString, description } = req.body;
     const { address, timestamp, message, signed, expectedHash } = req.authentication;
     const idOfRequest = req.id;
