@@ -74,6 +74,7 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
           transactionHash: receipt.hash,
         });
       } catch (error) {
+        const attemptDurationMs = Date.now() - attemptStartTime;
         console.error(
           JSON.stringify({
             idOfRequest,
