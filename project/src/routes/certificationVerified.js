@@ -24,10 +24,17 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
   router.post("/certify", authenticate, async (req, res) => {
     const { certifiedString, description } = req.body;
     const { address, timestamp, message, signed, expectedHash } = req.authentication;
+    const idOfRequest = req.id;
     const maxRetries = 5;
     const retryDelay = 1000;
     let attempt = 0;
-
+    log.info(
+      JSON.stringify({
+        address,
+        description,
+        message,
+      })
+    );
     if (!certifiedString || !description) {
       return res.status(400).json({ error: "Missing required fields." });
     }
@@ -39,16 +46,48 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
       const at = attempt + 1;
       try {
         const signature = signed.slice(2);
-        console.log(`${at}: Llamando a certify...`);
+        log.info(JSON.stringify({ idOfRequest, attempt, address }));
+        const actualTimestamp = Math.floor(Date.now() / 1000);
+        console.log(`${at}: Llamando a certify... with address: ${address} and message: ${message}, actualTimestamp: ${actualTimestamp}`);
         const tx = await certificationVerifiedContract.certify(certifiedString, description, address, expectedHash, "0x" + signature, timestamp);
+        log.info(JSON.stringify({ idOfRequest, attempt, address, transactionHash: tx.hash }));
+
         console.log(`${at}: Transacción enviada, hash: ${tx.hash}`);
         const receipt = await tx.wait();
-        console.log(`${at}: Transacción confirmada.`);
+        console.log(`${at}: Transacción confirmada with address: ${address} and message: ${message}, actualTimestamp: ${actualTimestamp}.`);
+        const confirmationDurationMs = Date.now() - confirmationStartTime;
+        console.info(
+          JSON.stringify({
+            idOfRequest,
+            attempt,
+            address,
+            transactionHash: receipt.hash,
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed.toString(),
+            confirmationDurationMs,
+          })
+        );
+        const totalDurationMs = Date.now() - startTime;
+        console.info(JSON.stringify({ idOfRequest, totalDurationMs }));
         return res.json({
           message: `Cadena certificada con éxito: ${certifiedString}`,
           transactionHash: receipt.hash,
         });
       } catch (error) {
+        console.error(
+          JSON.stringify({
+            idOfRequest,
+            attempt,
+            address,
+            attemptDurationMs,
+            err: {
+              message: error.message,
+              code: error.code,
+              reason: error.reason,
+              stack: error.stack,
+            },
+          })
+        );
         console.error(`${at} falló: ${error.reason}`);
         attempt++;
         const nonceErrorCodes = ["NONCE_EXPIRED"];
@@ -56,11 +95,13 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
         if (nonceErrorCodes.includes(error.code) || nonceErrorMessages.some((msg) => error.message?.includes(msg))) {
           if (attempt >= maxRetries) {
             console.error("Máximo de reintentos alcanzado saliendo.");
+            console.error(JSON.stringify({ idOfRequest, address }));
             return res.status(500).json({
               error: "Error de nonce persistente tras reintentos.",
               details: error.message,
             });
           }
+          console.warn(JSON.stringify({ idOfRequest, attempt, retryDelay }));
           console.warn(`Error de Nonce detectado (${error.message}). Esperando ${retryDelay}ms y reiniciando NonceManager...`);
           restartNonceManager();
           await sleep(retryDelay);
@@ -84,6 +125,7 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
         }
       }
     }
+    console.error(JSON.stringify({ idOfRequest, address, attempts: maxRetries }));
     return res.status(500).json({ error: "Se alcanzó el límite de reintentos sin éxito." });
   });
 
