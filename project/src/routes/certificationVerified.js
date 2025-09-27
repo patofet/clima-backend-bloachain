@@ -28,7 +28,7 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
     const maxRetries = 5;
     const retryDelay = 1000;
     let attempt = 0;
-    log.info(
+    console.info(
       JSON.stringify({
         address,
         description,
@@ -46,11 +46,11 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
       const at = attempt + 1;
       try {
         const signature = signed.slice(2);
-        log.info(JSON.stringify({ idOfRequest, attempt, address }));
+        console.info(JSON.stringify({ idOfRequest, attempt, address }));
         const actualTimestamp = Math.floor(Date.now() / 1000);
         console.log(`${at}: Llamando a certify... with address: ${address} and message: ${message}, actualTimestamp: ${actualTimestamp}`);
         const tx = await certificationVerifiedContract.certify(certifiedString, description, address, expectedHash, "0x" + signature, timestamp);
-        log.info(JSON.stringify({ idOfRequest, attempt, address, transactionHash: tx.hash }));
+        console.info(JSON.stringify({ idOfRequest, attempt, address, transactionHash: tx.hash }));
 
         console.log(`${at}: Transacción enviada, hash: ${tx.hash}`);
         const receipt = await tx.wait();
