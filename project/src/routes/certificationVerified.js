@@ -1,6 +1,7 @@
 const express = require("express");
 const { authenticate } = require("../middleware/authMiddleware");
 const { ethers } = require("ethers");
+const { v4: uuidv4 } = require("uuid");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -25,7 +26,7 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
     const startTime = Date.now();
     const { certifiedString, description } = req.body;
     const { address, timestamp, message, signed, expectedHash } = req.authentication;
-    const idOfRequest = req.id;
+    const idOfRequest = uuidv4();
     const maxRetries = 5;
     const retryDelay = 1000;
     let attempt = 0;

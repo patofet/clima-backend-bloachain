@@ -13,7 +13,6 @@ const createUserRouter = require("./routes/userVerified");
 const nodeStatus = require("./routes/node");
 
 const PORT = process.env.PORT || 3000;
-const { v4: uuidv4 } = require("uuid");
 
 try {
   initializeSharedSigner();
@@ -79,10 +78,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Error interno del servidor" });
 });
 
-app.use((req, res, next) => {
-  req.id = uuidv4();
-  next();
-});
 const server = http.createServer(app);
 server.listen(PORT, () => {
   console.log(`🚀 API en ${PORT} usando dirección: ${signer.signer.address}`);
