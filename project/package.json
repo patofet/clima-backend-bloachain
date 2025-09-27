@@ -39,6 +39,7 @@
     "hardhat-gas-reporter": "^2.2.2",
     "nodemon": "^3.1.7",
     "solidity-coverage": "^0.8.14",
-    "typechain": "^8.3.2"
+    "typechain": "^8.3.2",
+    "web3": "^4.16.0"
   }
 }
