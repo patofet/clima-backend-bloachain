@@ -54,6 +54,7 @@ const createCertificationRouter = (certificationVerifiedContract, restartNonceMa
         console.info(JSON.stringify({ idOfRequest, attempt, address, transactionHash: tx.hash }));
 
         console.log(`${at}: Transacción enviada, hash: ${tx.hash}`);
+        const confirmationStartTime = Date.now();
         const receipt = await tx.wait();
         console.log(`${at}: Transacción confirmada with address: ${address} and message: ${message}, actualTimestamp: ${actualTimestamp}.`);
         const confirmationDurationMs = Date.now() - confirmationStartTime;
