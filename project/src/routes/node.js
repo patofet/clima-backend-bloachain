@@ -9,10 +9,11 @@ const nodes = [
 async function getNodeStatus(node) {
   try {
     const web3 = new Web3(new Web3.providers.HttpProvider(node.url, { timeout: 5000 }));
-    const [blockNumber, isSyncing, peerCount, networkId, gasPrice, hashrate, coinbase, clientVersion] = await Promise.all([web3.eth.getBlockNumber(), web3.eth.isSyncing(), web3.eth.net.getPeerCount(), web3.eth.net.getId(), web3.eth.getGasPrice(), web3.eth.getHashrate(), web3.eth.getCoinbase().catch(() => "No disponible"), web3.eth.getNodeInfo().catch(() => "No disponible")]);
+    const [blockNumber, isSyncing, peerCount, networkId, gasPrice, hashrate, coinbase, clientVersion, blockInfo] = await Promise.all([web3.eth.getBlockNumber(), web3.eth.isSyncing(), web3.eth.net.getPeerCount(), web3.eth.net.getId(), web3.eth.getGasPrice(), web3.eth.getHashrate(), web3.eth.getCoinbase().catch(() => "No disponible"), web3.eth.getNodeInfo().catch(() => "No disponible"), web3.eth.getBlock("latest")]);
     const response = await fetch(`http://magiinterface.udg.edu:3000/login?address=0xbb678ed4adb678bad4b8f7203135ae1854463a7f&message=44`);
     const data = await response.json();
     const timestampAPI = data.timestamp;
+    const nodeTimestamp = blockInfo ? blockInfo.timestamp : null;
     return {
       name: node.name,
       url: node.url,
@@ -26,6 +27,7 @@ async function getNodeStatus(node) {
       coinbase: coinbase,
       clientVersion: clientVersion,
       timestampAPI: timestampAPI,
+      nodeTimestamp: nodeTimestamp,
     };
   } catch (error) {
     return {

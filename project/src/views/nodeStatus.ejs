@@ -131,7 +131,9 @@
                             <dt>Dirección Coinbase</dt><dd>${node.coinbase}</dd>
                             <dt>Versión del Cliente</dt><dd>${node.clientVersion}</dd>
                             <dt>Endpoint RPC</dt><dd>${node.url}</dd>
-                            <dt>Diference between API and node:</dt><dd>${node.timestampAPI}</dd>
+                            <dt>Api timestamp:</dt><dd>${node.timestampAPI}</dd>
+                            <dt>Node timestamp:</dt><dd>${node.nodeTimestamp}</dd>
+                            <dt>Diference between API and node:</dt><dd>${Math.abs(node.timestampAPI - node.nodeTimestamp)}</dd>
                         </dl>
                     </div>`;
         } else {
