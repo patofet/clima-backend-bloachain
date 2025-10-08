@@ -13,7 +13,7 @@ async function getNodeStatus(node) {
     const response = await fetch(`http://magiinterface.udg.edu:3000/login?address=0xbb678ed4adb678bad4b8f7203135ae1854463a7f&message=44`);
     const data = await response.json();
     const timestampAPI = data.timestamp;
-    const nodeTimestamp = blockInfo ? blockInfo.timestamp : null;
+    const nodeTimestamp = blockInfo ? blockInfo.timestamp.toString() : null;
     return {
       name: node.name,
       url: node.url,
