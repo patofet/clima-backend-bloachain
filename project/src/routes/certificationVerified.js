@@ -38,7 +38,7 @@ const createCertificationRouter = (certificationVerifiedContract, txQueue, getTr
       console.log(`[${idOfRequest}] Llamando a certify con address: ${address}, message: ${message}, actualTimestamp: ${actualTimestamp}`);
 
       const { tx, receipt } = await txQueue.sendAndWait(
-        () => certificationVerifiedContract.certify(certifiedString, description, address, expectedHash, "0x" + signature, timestamp)
+        (overrides) => certificationVerifiedContract.certify(certifiedString, description, address, expectedHash, "0x" + signature, timestamp, overrides)
       );
 
       console.info(
@@ -91,7 +91,7 @@ const createCertificationRouter = (certificationVerifiedContract, txQueue, getTr
       console.log(`[Async] Llamando a certify con address: ${address}`);
 
       const { tx } = await txQueue.sendOnly(
-        () => certificationVerifiedContract.certify(certifiedString, description, address, expectedHash, "0x" + signature, timestamp)
+        (overrides) => certificationVerifiedContract.certify(certifiedString, description, address, expectedHash, "0x" + signature, timestamp, overrides)
       );
 
       console.log(`[Async] Transacción enviada, hash: ${tx.hash}`);

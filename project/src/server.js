@@ -1,7 +1,7 @@
 const http = require("http");
 const app = require("./app");
 
-const { initializeSharedSigner, restartSharedNonceManager, getSigner, getTransactionDetails } = require("./sharedSigner");
+const { initializeSharedSigner, getSigner, getProvider, getTransactionDetails } = require("./sharedSigner");
 const TransactionQueue = require("./TransactionQueue");
 
 const { initCertificationVerificatedContract } = require("./contracts/CertificationVerificated");
@@ -43,10 +43,10 @@ try {
   process.exit(1);
 }
 
-// Create shared TransactionQueue with mutex for nonce management
-const txQueue = new TransactionQueue(restartSharedNonceManager, {
+// Create shared TransactionQueue with mutex for manual nonce management
+const txQueue = new TransactionQueue(signer, getProvider(), {
   maxRetries: 5,
-  retryDelay: 1000,
+  retryDelay: 1500,
 });
 console.log("✅ TransactionQueue inicializada con mutex.");
 
@@ -88,7 +88,7 @@ app.use((err, req, res, next) => {
 
 const server = http.createServer(app);
 server.listen(PORT, () => {
-  console.log(`🚀 API en ${PORT} usando dirección: ${signer.signer.address}`);
+  console.log(`🚀 API en ${PORT} usando dirección: ${signer.address}`);
 });
 
 server.on("error", (error) => {

@@ -13,7 +13,7 @@ const createUserRouter = (usersContract, txQueue) => {
 
     try {
       console.log(`Llamando a usersContract.addUser(${userAddress})`);
-      const { tx, receipt } = await txQueue.sendAndWait(() => usersContract.addUser(userAddress));
+      const { tx, receipt } = await txQueue.sendAndWait((overrides) => usersContract.addUser(userAddress, overrides));
       console.log(`addUser Tx confirmada: ${receipt.hash}`);
       return res.json({
         message: `Usuario ${userAddress} verificado con éxito.`,
@@ -34,7 +34,7 @@ const createUserRouter = (usersContract, txQueue) => {
 
     try {
       console.log(`Llamando a usersContract.removeUser(${userAddress})`);
-      const { tx, receipt } = await txQueue.sendAndWait(() => usersContract.removeUser(userAddress));
+      const { tx, receipt } = await txQueue.sendAndWait((overrides) => usersContract.removeUser(userAddress, overrides));
       console.log(`removeUser Tx confirmada: ${receipt.hash}`);
       return res.json({
         message: `Usuario ${userAddress} eliminado de verificados con éxito.`,
@@ -55,7 +55,7 @@ const createUserRouter = (usersContract, txQueue) => {
 
     try {
       console.log(`Llamando a usersContract.addPetition(${userAddress})`);
-      const { tx, receipt } = await txQueue.sendAndWait(() => usersContract.addPetition(userAddress));
+      const { tx, receipt } = await txQueue.sendAndWait((overrides) => usersContract.addPetition(userAddress, overrides));
       console.log(`addPetition Tx confirmada: ${receipt.hash}`);
 
       let eventData = {};

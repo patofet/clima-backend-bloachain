@@ -1,13 +1,12 @@
-const { ethers, JsonRpcProvider, FallbackProvider, NonceManager } = require("ethers");
+const { ethers, JsonRpcProvider, FallbackProvider } = require("ethers");
 require("dotenv").config();
 
 let provider;
 let baseWallet;
-let managedSigner;
 
 const initializeSharedSigner = () => {
-  if (managedSigner) {
-    return { getSigner, getProvider, getContractInstance };
+  if (baseWallet) {
+    return { getSigner, getProvider };
   }
 
   // Support multiple RPC nodes via JSON_RPC_URLS (comma-separated)
@@ -20,14 +19,14 @@ const initializeSharedSigner = () => {
     // Create FallbackProvider with multiple nodes for redundancy and load distribution
     const providerConfigs = rpcUrls.map((url, index) => ({
       provider: new JsonRpcProvider(url),
-      priority: index + 1, // Lower = higher priority
-      stallTimeout: 2000, // ms before trying next provider
+      priority: index + 1,
+      stallTimeout: 2000,
       weight: 1,
     }));
     provider = new FallbackProvider(
       providerConfigs,
-      undefined, // network (auto-detect)
-      { quorum: 1 } // Only need 1 provider to agree (speed over consensus)
+      undefined,
+      { quorum: 1 }
     );
     console.log(`✅ FallbackProvider inicializado con ${rpcUrls.length} nodos: ${rpcUrls.join(", ")}`);
   } else {
@@ -35,16 +34,17 @@ const initializeSharedSigner = () => {
     console.log(`✅ Provider inicializado con nodo único: ${rpcUrls[0]}`);
   }
 
+  // Plain wallet, NO NonceManager — nonces managed manually by TransactionQueue
   baseWallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  managedSigner = new NonceManager(baseWallet);
+  console.log(`✅ Wallet inicializada: ${baseWallet.address}`);
   return { getSigner, getProvider };
 };
 
 const getSigner = () => {
-  if (!managedSigner) {
+  if (!baseWallet) {
     throw new Error("Signer no inicializado.");
   }
-  return managedSigner;
+  return baseWallet;
 };
 
 const getProvider = () => {
@@ -52,13 +52,6 @@ const getProvider = () => {
     throw new Error("Provider no inicializado.");
   }
   return provider;
-};
-
-const restartSharedNonceManager = () => {
-  if (!baseWallet) {
-    throw new Error("No se puede reiniciar, baseWallet no inicializado.");
-  }
-  managedSigner.reset();
 };
 
 const getTransactionDetails = async (transactionHash, contractAbi) => {
@@ -83,7 +76,7 @@ const getTransactionDetails = async (transactionHash, contractAbi) => {
     });
 
     return {
-      status: finalStatus, // success | failed
+      status: finalStatus,
       transactionHash: receipt.transactionHash,
       blockNumber: receipt.blockNumber,
       gasUsed: receipt.gasUsed.toString(),
@@ -104,10 +97,10 @@ const getTransactionDetails = async (transactionHash, contractAbi) => {
     };
   }
 };
+
 module.exports = {
   initializeSharedSigner,
   getSigner,
   getProvider,
-  restartSharedNonceManager,
   getTransactionDetails,
 };
