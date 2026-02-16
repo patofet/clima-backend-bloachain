@@ -12,9 +12,10 @@ from eth_keys.main import PrivateKey
 
 # --- Configuration ---
 BASE_URL = "http://magiinterface.udg.edu:3000"
-TPS_STEPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50]  # Focused range based on saturation findings
-DURATION_PER_STEP = 2  # Seconds to run each test step
-CDF_TARGET_TPS = 40  # TPS to use for CDF graph
+TPS_STEPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+REPEATS = 3          # How many times to repeat each test for averaging
+COOLDOWN = 3         # Seconds to wait between repeats
+CDF_TARGET_TPS = 5   # TPS to use for CDF graph
 MAX_WORKERS = 500 # Increased to handle high latency at high TPS (50 TPS * 6s latency = 300+ workers needed)
 
 # --- Helper Functions (copied and adapted from main.py) ---
@@ -92,53 +93,44 @@ def certify_string_measured(public_address: str, private_key: str, message: str)
         headers = { "Content-Type": "application/json", "Authorization": f"Basic {credenciales_base64}" }
         data = { "certifiedString": message, "description": message }
         
-        response_certify = requests.post(certify_url, headers=headers, json=data, timeout=10)
+        response_certify = requests.post(certify_url, headers=headers, json=data, timeout=3000)
         end_time = time.time()
         
         if response_certify.status_code == 200 or response_certify.status_code == 201:
              return {"success": True, "latency": end_time - start_time, "status_code": response_certify.status_code}
         else:
-             return {"success": False, "latency": end_time - start_time, "status_code": response_certify.status_code}
+             # Capture the error body from the server
+             try:
+                 error_body = response_certify.json()
+                 error_detail = error_body.get("error", response_certify.text[:200])
+             except Exception:
+                 error_detail = response_certify.text[:200]
+             return {"success": False, "latency": end_time - start_time, "status_code": response_certify.status_code, "error": error_detail}
 
     except requests.exceptions.RequestException as e:
         end_time = time.time()
         return {"success": False, "latency": end_time - start_time, "error": str(e)}
 
-# --- Load Generator ---
-
-def run_load_test(tps, duration, public_key, private_key):
-    print(f"Running load test: {tps} TPS for {duration} seconds...")
+def run_load_test(num_requests, public_key, private_key):
+    print(f"Running load test: {num_requests} requests in parallel...")
     results = []
-    start_test_time = time.time()
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = []
-        sent_count = 0
         
-        while time.time() - start_test_time < duration:
-            # Burst send for this second
-            batch_start = time.time()
-            
-            # We want to send 'tps' requests in 1 second.
-            # Simple approach: Fire 'tps' tasks, then sleep remainder of second.
-            
-            for _ in range(tps):
-                msg = f"Benchmark_{tps}_{sent_count}_{random.randint(0, 100000)}"
-                futures.append(executor.submit(certify_string_measured, public_key, private_key, msg))
-                sent_count += 1
-            
-            batch_duration = time.time() - batch_start
-            sleep_time = 1.0 - batch_duration
-            if sleep_time > 0:
-                time.sleep(sleep_time)
-            
+        # Launch all requests at once
+        for i in range(num_requests):
+            msg = f"Benchmark_{num_requests}_{i}_{random.randint(0, 100000)}"
+            futures.append(executor.submit(certify_string_measured, public_key, private_key, msg))
+        
+        print(f"  → {num_requests} requests lanzadas, esperando respuestas...")
+        
         # Wait for all to complete
         for future in concurrent.futures.as_completed(futures):
             try:
-                res = future.result()
+                res = future.result(timeout=120)
                 results.append(res)
             except Exception as e:
-                # Should be handled inside measure function, but just in case
                 results.append({"success": False, "latency": 0, "error": str(e)})
                 
     return results
@@ -215,28 +207,66 @@ def main():
     success_rate_data = [] # (TPS, Success Rate %)
     all_latencies_for_cdf = [] # List of latencies from a specific run
 
-    print("\n--- Starting Benchmark ---")
+    print(f"\n--- Starting Benchmark (x{REPEATS} repeats, {COOLDOWN}s cooldown) ---\n")
 
     for tps in TPS_STEPS:
-        data = run_load_test(tps, DURATION_PER_STEP, pub, pk)
-        
-        # Process Data
-        latencies = [d['latency'] for d in data if d['success']]
-        failures = sum(1 for d in data if not d['success'])
-        total = len(data)
-        success_count = total - failures
-        
-        avg_latency = statistics.mean(latencies) if latencies else 0
-        success_rate = (success_count / total) * 100 if total > 0 else 0
-        
-        hockey_stick_data.append((tps, avg_latency))
-        success_rate_data.append((tps, success_rate))
-        
-        if tps == CDF_TARGET_TPS:
-            all_latencies_for_cdf = latencies
+        run_latencies = []
+        run_success_rates = []
+        all_errors = []
+        cdf_latencies = []
 
-        print(f"TPS: {tps} | Avg Latency: {avg_latency:.4f}s | Success Rate: {success_rate:.2f}%")
-        time.sleep(2) # Cooldown
+        for run in range(1, REPEATS + 1):
+            start_time = time.time()
+            data = run_load_test(tps, pub, pk)
+            total_time = time.time() - start_time
+
+            latencies = [d['latency'] for d in data if d['success']]
+            failures = sum(1 for d in data if not d['success'])
+            total = len(data)
+            success_count = total - failures
+
+            avg_lat = statistics.mean(latencies) if latencies else 0
+            sr = (success_count / total) * 100 if total > 0 else 0
+
+            run_latencies.append(avg_lat)
+            run_success_rates.append(sr)
+            cdf_latencies.extend(latencies)
+
+            # Collect errors
+            for d in data:
+                if not d['success']:
+                    all_errors.append(d.get('error', f"HTTP {d.get('status_code', '?')}"))
+
+            print(f"  Run {run}/{REPEATS}: Latency={avg_lat:.4f}s | SR={sr:.0f}% | OK={success_count}/{total} | {total_time:.1f}s")
+
+            if run < REPEATS:
+                time.sleep(COOLDOWN)
+
+        # Average across all runs
+        avg_latency = statistics.mean(run_latencies) if run_latencies else 0
+        avg_sr = statistics.mean(run_success_rates) if run_success_rates else 0
+
+        hockey_stick_data.append((tps, avg_latency))
+        success_rate_data.append((tps, avg_sr))
+
+        if tps == CDF_TARGET_TPS:
+            all_latencies_for_cdf = cdf_latencies
+
+        print(f"▶ N={tps} | Avg Latency: {avg_latency:.4f}s | Avg Success Rate: {avg_sr:.1f}%")
+
+        # Error breakdown
+        if all_errors:
+            error_counts = {}
+            for reason in all_errors:
+                if isinstance(reason, str) and len(reason) > 120:
+                    reason = reason[:120] + "..."
+                error_counts[reason] = error_counts.get(reason, 0) + 1
+            print(f"  ❌ Errores totales ({len(all_errors)} en {REPEATS} runs):")
+            for reason, count in sorted(error_counts.items(), key=lambda x: -x[1]):
+                print(f"     {count}x | {reason}")
+
+        print()
+        time.sleep(COOLDOWN)  # Cooldown between different TPS steps
 
     # --- Output Generation ---
 

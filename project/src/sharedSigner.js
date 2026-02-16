@@ -16,10 +16,13 @@ const initializeSharedSigner = () => {
     : [process.env.JSON_RPC_URL];
 
   if (rpcUrls.length > 1) {
-    // Create FallbackProvider with multiple nodes for redundancy and load distribution
-    const providerConfigs = rpcUrls.map((url, index) => ({
-      provider: new JsonRpcProvider(url),
-      priority: index + 1,
+    // Create FallbackProvider with multiple nodes
+    // IMPORTANT: All nodes get priority=1 so ethers selects RANDOMLY among them (= load balancing)
+    // If priorities were different (1, 2, 3), it would always use node 1 first (= failover only)
+    const individualProviders = rpcUrls.map((url) => new JsonRpcProvider(url));
+    const providerConfigs = individualProviders.map((p) => ({
+      provider: p,
+      priority: 1,       // Same priority = random selection = load balancing
       stallTimeout: 2000,
       weight: 1,
     }));
@@ -28,7 +31,17 @@ const initializeSharedSigner = () => {
       undefined,
       { quorum: 1 }
     );
-    console.log(`✅ FallbackProvider inicializado con ${rpcUrls.length} nodos: ${rpcUrls.join(", ")}`);
+    console.log(`✅ FallbackProvider inicializado con ${rpcUrls.length} nodos (misma prioridad = load balancing):`);
+
+    // Diagnostic: check each node individually at startup
+    individualProviders.forEach(async (p, i) => {
+      try {
+        const blockNumber = await p.getBlockNumber();
+        console.log(`   🟢 Nodo ${i + 1} (${rpcUrls[i]}): OK, bloque #${blockNumber}`);
+      } catch (err) {
+        console.error(`   🔴 Nodo ${i + 1} (${rpcUrls[i]}): ERROR - ${err.message}`);
+      }
+    });
   } else {
     provider = new JsonRpcProvider(rpcUrls[0]);
     console.log(`✅ Provider inicializado con nodo único: ${rpcUrls[0]}`);
