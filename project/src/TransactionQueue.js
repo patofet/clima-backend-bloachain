@@ -4,22 +4,26 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Promise that rejects after a timeout
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout de ${ms}ms esperando: ${label}`)), ms)
+    ),
+  ]);
+}
+
 class TransactionQueue {
   /**
    * Manages transaction sending with manual nonce control via mutex.
-   * This replaces ethers' NonceManager which can desync under load.
-   *
-   * How it works:
-   * 1. Mutex ensures only one transaction is being SENT at a time
-   * 2. Before each send, we query the blockchain for the REAL confirmed nonce
-   * 3. We override the tx nonce with this value
-   * 4. Confirmation (tx.wait) happens OUTSIDE the mutex for parallelism
    *
    * @param {object} signer - ethers Wallet (NOT a NonceManager)
    * @param {object} provider - ethers Provider for querying nonce
    * @param {Object} options
    * @param {number} options.maxRetries - Maximum retry attempts (default: 5)
    * @param {number} options.retryDelay - Delay between retries in ms (default: 1500)
+   * @param {number} options.confirmTimeout - Max ms to wait for tx confirmation (default: 60000)
    */
   constructor(signer, provider, options = {}) {
     this.mutex = new Mutex();
@@ -27,25 +31,17 @@ class TransactionQueue {
     this.provider = provider;
     this.maxRetries = options.maxRetries || 5;
     this.retryDelay = options.retryDelay || 1500;
+    this.confirmTimeout = options.confirmTimeout || 60000;
     this.signerAddress = signer.address;
 
-    // Internal nonce tracker: starts as null, gets set on first tx
-    // We track it ourselves to avoid querying the blockchain every time
-    // but we RESET it from the blockchain on any error
     this._nextNonce = null;
-
-    // Stats for debugging
     this._txCount = 0;
     this._errorCount = 0;
 
     console.log(`[TxQueue] Inicializada para signer: ${this.signerAddress}`);
-    console.log(`[TxQueue] Config: maxRetries=${this.maxRetries}, retryDelay=${this.retryDelay}ms`);
+    console.log(`[TxQueue] Config: maxRetries=${this.maxRetries}, retryDelay=${this.retryDelay}ms, confirmTimeout=${this.confirmTimeout}ms`);
   }
 
-  /**
-   * Get the next nonce to use. On first call or after error, queries blockchain.
-   * Otherwise uses the tracked internal counter.
-   */
   async _getNonce(forceRefresh = false) {
     if (this._nextNonce === null || forceRefresh) {
       const reason = this._nextNonce === null ? "primer uso / reset" : "forzado por retry";
@@ -59,9 +55,6 @@ class TransactionQueue {
     return this._nextNonce;
   }
 
-  /**
-   * Checks if an error is nonce-related
-   */
   _isNonceError(error) {
     const nonceErrorCodes = ["NONCE_EXPIRED"];
     const nonceErrorMessages = [
@@ -73,14 +66,6 @@ class TransactionQueue {
     return nonceErrorCodes.includes(error.code) || nonceErrorMessages.some((msg) => error.message?.includes(msg));
   }
 
-  /**
-   * Send a transaction through the mutex queue with manual nonce management.
-   *
-   * @param {Function} txFunction - Function that accepts a nonce override object and sends tx.
-   *                                Example: (overrides) => contract.certify(arg1, arg2, overrides)
-   * @returns {Promise<{tx: object}>} - The sent transaction object
-   * @throws {Error} - If all retries are exhausted
-   */
   async send(txFunction) {
     let attempt = 0;
     const txId = ++this._txCount;
@@ -99,24 +84,21 @@ class TransactionQueue {
       }
 
       try {
-        const nonce = await this._getNonce(attempt > 0); // force refresh on retries
+        const nonce = await this._getNonce(attempt > 0);
         console.log(`[TxQueue] 🚀 Tx #${txId} | Intento ${attempt + 1}/${this.maxRetries} | Nonce: ${nonce} | Enviando...`);
 
         const sendStart = Date.now();
         const tx = await txFunction({ nonce });
         const sendMs = Date.now() - sendStart;
 
-        // Success - increment our internal nonce tracker
         this._nextNonce = nonce + 1;
         const totalMs = Date.now() - queuedAt;
         console.log(`[TxQueue] ✅ Tx #${txId} enviada OK | Hash: ${tx.hash} | Nonce: ${nonce} | Envío: ${sendMs}ms | Total: ${totalMs}ms`);
         console.log(`[TxQueue] 📊 Próximo nonce: ${this._nextNonce} | Stats: ${this._txCount} enviadas, ${this._errorCount} errores`);
 
-        // Release BEFORE wait() so other txs can be sent while this confirms
         release();
         return { tx };
       } catch (error) {
-        // Reset internal nonce on any error
         const prevNonce = this._nextNonce;
         this._nextNonce = null;
         this._errorCount++;
@@ -153,17 +135,30 @@ class TransactionQueue {
   }
 
   /**
-   * Send a transaction and wait for confirmation.
+   * Send a transaction and wait for confirmation WITH TIMEOUT.
    * For /certify - returns full receipt info.
    */
   async sendAndWait(txFunction) {
     const { tx } = await this.send(txFunction);
-    console.log(`[TxQueue] ⏳ Esperando confirmación de tx: ${tx.hash}...`);
+    console.log(`[TxQueue] ⏳ Esperando confirmación de tx: ${tx.hash} (timeout: ${this.confirmTimeout}ms)...`);
     const waitStart = Date.now();
-    const receipt = await tx.wait();
-    const confirmMs = Date.now() - waitStart;
-    console.log(`[TxQueue] ✅ Tx confirmada: ${tx.hash} | Block: ${receipt.blockNumber} | Gas: ${receipt.gasUsed.toString()} | Confirmación: ${confirmMs}ms`);
-    return { tx, receipt };
+
+    try {
+      const receipt = await withTimeout(
+        tx.wait(),
+        this.confirmTimeout,
+        `confirmación tx ${tx.hash}`
+      );
+      const confirmMs = Date.now() - waitStart;
+      console.log(`[TxQueue] ✅ Tx confirmada: ${tx.hash} | Block: ${receipt.blockNumber} | Gas: ${receipt.gasUsed.toString()} | Confirmación: ${confirmMs}ms`);
+      return { tx, receipt };
+    } catch (error) {
+      const elapsedMs = Date.now() - waitStart;
+      console.error(`[TxQueue] ⏰ tx.wait() falló tras ${elapsedMs}ms para ${tx.hash}: ${error.message}`);
+      // Reset nonce since we don't know if the tx was mined or not
+      this._nextNonce = null;
+      throw error;
+    }
   }
 
   /**

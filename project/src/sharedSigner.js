@@ -1,8 +1,9 @@
-const { ethers, JsonRpcProvider, FallbackProvider } = require("ethers");
+const { ethers, JsonRpcProvider } = require("ethers");
 require("dotenv").config();
 
 let provider;
 let baseWallet;
+let allProviders = []; // Keep references for health checks
 
 const initializeSharedSigner = () => {
   if (baseWallet) {
@@ -15,42 +16,49 @@ const initializeSharedSigner = () => {
     ? process.env.JSON_RPC_URLS.split(",").map((url) => url.trim())
     : [process.env.JSON_RPC_URL];
 
-  if (rpcUrls.length > 1) {
-    // Create FallbackProvider with multiple nodes
-    // IMPORTANT: All nodes get priority=1 so ethers selects RANDOMLY among them (= load balancing)
-    // If priorities were different (1, 2, 3), it would always use node 1 first (= failover only)
-    const individualProviders = rpcUrls.map((url) => new JsonRpcProvider(url));
-    const providerConfigs = individualProviders.map((p) => ({
-      provider: p,
-      priority: 1,       // Same priority = random selection = load balancing
-      stallTimeout: 2000,
-      weight: 1,
-    }));
-    provider = new FallbackProvider(
-      providerConfigs,
-      undefined,
-      { quorum: 1 }
-    );
-    console.log(`✅ FallbackProvider inicializado con ${rpcUrls.length} nodos (misma prioridad = load balancing):`);
+  // Use the FIRST node as primary provider for sending transactions
+  // All txs go through the same node to avoid mempool/nonce desync across nodes
+  provider = new JsonRpcProvider(rpcUrls[0]);
+  console.log(`✅ Provider primario: ${rpcUrls[0]}`);
 
-    // Diagnostic: check each node individually at startup
-    individualProviders.forEach(async (p, i) => {
+  // Create individual providers for all nodes (for health checks)
+  allProviders = rpcUrls.map((url) => ({ url, provider: new JsonRpcProvider(url) }));
+
+  if (rpcUrls.length > 1) {
+    console.log(`ℹ️  ${rpcUrls.length} nodos configurados. Primario: ${rpcUrls[0]}`);
+    console.log(`ℹ️  Nodos backup: ${rpcUrls.slice(1).join(", ")}`);
+
+    // Check connectivity of all nodes at startup (async, non-blocking)
+    allProviders.forEach(async ({ url, provider: p }, i) => {
       try {
         const blockNumber = await p.getBlockNumber();
-        console.log(`   🟢 Nodo ${i + 1} (${rpcUrls[i]}): OK, bloque #${blockNumber}`);
+        console.log(`   🟢 Nodo ${i + 1} (${url}): OK, bloque #${blockNumber}`);
       } catch (err) {
-        console.error(`   🔴 Nodo ${i + 1} (${rpcUrls[i]}): ERROR - ${err.message}`);
+        console.error(`   🔴 Nodo ${i + 1} (${url}): ERROR - ${err.message}`);
       }
     });
-  } else {
-    provider = new JsonRpcProvider(rpcUrls[0]);
-    console.log(`✅ Provider inicializado con nodo único: ${rpcUrls[0]}`);
   }
 
   // Plain wallet, NO NonceManager — nonces managed manually by TransactionQueue
   baseWallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   console.log(`✅ Wallet inicializada: ${baseWallet.address}`);
   return { getSigner, getProvider };
+};
+
+/**
+ * Switch the wallet to a different RPC node (for failover).
+ * Called by TransactionQueue when the primary node is unresponsive.
+ */
+const switchProvider = (nodeIndex) => {
+  if (nodeIndex >= allProviders.length) {
+    console.error(`[Failover] No hay nodo con índice ${nodeIndex}`);
+    return false;
+  }
+  const { url, provider: newProvider } = allProviders[nodeIndex];
+  provider = newProvider;
+  baseWallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  console.warn(`[Failover] ⚠️ Cambiado a nodo ${nodeIndex + 1}: ${url}`);
+  return true;
 };
 
 const getSigner = () => {
@@ -66,6 +74,8 @@ const getProvider = () => {
   }
   return provider;
 };
+
+const getNodeCount = () => allProviders.length;
 
 const getTransactionDetails = async (transactionHash, contractAbi) => {
   try {
@@ -115,5 +125,7 @@ module.exports = {
   initializeSharedSigner,
   getSigner,
   getProvider,
+  getNodeCount,
+  switchProvider,
   getTransactionDetails,
 };

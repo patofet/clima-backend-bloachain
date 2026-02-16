@@ -93,7 +93,7 @@ def certify_string_measured(public_address: str, private_key: str, message: str)
         headers = { "Content-Type": "application/json", "Authorization": f"Basic {credenciales_base64}" }
         data = { "certifiedString": message, "description": message }
         
-        response_certify = requests.post(certify_url, headers=headers, json=data, timeout=3000)
+        response_certify = requests.post(certify_url, headers=headers, json=data, timeout=120)
         end_time = time.time()
         
         if response_certify.status_code == 200 or response_certify.status_code == 201:
