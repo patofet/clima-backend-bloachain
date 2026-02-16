@@ -1,4 +1,4 @@
-const { ethers, JsonRpcProvider, NonceManager } = require("ethers");
+const { ethers, JsonRpcProvider, FallbackProvider, NonceManager } = require("ethers");
 require("dotenv").config();
 
 let provider;
@@ -9,7 +9,32 @@ const initializeSharedSigner = () => {
   if (managedSigner) {
     return { getSigner, getProvider, getContractInstance };
   }
-  provider = new JsonRpcProvider(process.env.JSON_RPC_URL);
+
+  // Support multiple RPC nodes via JSON_RPC_URLS (comma-separated)
+  // Falls back to single JSON_RPC_URL for backwards compatibility
+  const rpcUrls = process.env.JSON_RPC_URLS
+    ? process.env.JSON_RPC_URLS.split(",").map((url) => url.trim())
+    : [process.env.JSON_RPC_URL];
+
+  if (rpcUrls.length > 1) {
+    // Create FallbackProvider with multiple nodes for redundancy and load distribution
+    const providerConfigs = rpcUrls.map((url, index) => ({
+      provider: new JsonRpcProvider(url),
+      priority: index + 1, // Lower = higher priority
+      stallTimeout: 2000, // ms before trying next provider
+      weight: 1,
+    }));
+    provider = new FallbackProvider(
+      providerConfigs,
+      undefined, // network (auto-detect)
+      { quorum: 1 } // Only need 1 provider to agree (speed over consensus)
+    );
+    console.log(`✅ FallbackProvider inicializado con ${rpcUrls.length} nodos: ${rpcUrls.join(", ")}`);
+  } else {
+    provider = new JsonRpcProvider(rpcUrls[0]);
+    console.log(`✅ Provider inicializado con nodo único: ${rpcUrls[0]}`);
+  }
+
   baseWallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   managedSigner = new NonceManager(baseWallet);
   return { getSigner, getProvider };

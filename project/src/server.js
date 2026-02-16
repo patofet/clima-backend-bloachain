@@ -2,6 +2,7 @@ const http = require("http");
 const app = require("./app");
 
 const { initializeSharedSigner, restartSharedNonceManager, getSigner, getTransactionDetails } = require("./sharedSigner");
+const TransactionQueue = require("./TransactionQueue");
 
 const { initCertificationVerificatedContract } = require("./contracts/CertificationVerificated");
 const { initUsersVerifiedContract } = require("./contracts/UsersVerified");
@@ -42,11 +43,18 @@ try {
   process.exit(1);
 }
 
+// Create shared TransactionQueue with mutex for nonce management
+const txQueue = new TransactionQueue(restartSharedNonceManager, {
+  maxRetries: 5,
+  retryDelay: 1000,
+});
+console.log("✅ TransactionQueue inicializada con mutex.");
+
 let certificationVerifiedRouter;
 let userRouter;
 try {
-  certificationVerifiedRouter = createCertificationVerifiedRouter(certificationVerifiedContract, restartSharedNonceManager, getTransactionDetails);
-  userRouter = createUserRouter(usersContract, restartSharedNonceManager);
+  certificationVerifiedRouter = createCertificationVerifiedRouter(certificationVerifiedContract, txQueue, getTransactionDetails);
+  userRouter = createUserRouter(usersContract, txQueue);
   console.log("✅ Rutas creados correctamente.");
 } catch (error) {
   console.error("💥 ¡ERROR al crear las rutas!", error);
@@ -55,7 +63,7 @@ try {
 
 try {
   app.use("/certificationVerified", certificationVerifiedRouter);
-  console.log("🛣️  Router de certificación montado en /certification");
+  console.log("🛣️  Router de certificación montado en /certificationVerified");
   app.use("/userVerified", userRouter);
   console.log("🛣️  Router de usuarios montado en /userVerified");
   app.use("/login", loginRouter);
@@ -106,7 +114,6 @@ process.on("SIGTERM", () => {
   console.log(" SIGTERM recibido. Cerrando servidor HTTP...");
   server.close(() => {
     console.log("Servidor HTTP cerrado.");
-    // Aquí podrías añadir lógica para cerrar conexiones a DB, etc.
     process.exit(0);
   });
 });

@@ -30,6 +30,93 @@
             "command": "npm run deploy:prod",
             "group": "build",
             "problemMatcher": []
+        },
+        {
+            "label": "Install Python Dependencies",
+            "type": "shell",
+            "command": "pip3",
+            "args": [
+                "install",
+                "-r",
+                "requirements.txt"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Setup Environment",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--user",
+                "-r",
+                "requirements.txt"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Blockchain Log Plotter",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "${workspaceFolder}/scripts/plot_blockchain_logs.py"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": "Check Dependencies",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Check Dependencies",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "-c",
+                "import pandas, matplotlib; print('Dependencies OK')"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": false,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
         }
     ]
 }
