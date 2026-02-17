@@ -1,4 +1,5 @@
 import os
+import uuid
 import sha3
 import requests
 from requests.adapters import HTTPAdapter
@@ -6,7 +7,6 @@ from urllib3.util.retry import Retry
 import base64
 import random
 import time
-import socket
 import concurrent.futures
 import statistics
 import numpy as np
@@ -14,31 +14,18 @@ import threading
 from eth_keys.main import PrivateKey
 
 # --- Configuration ---
-HOSTNAME = "magiinterface.udg.edu"
-PORT = 3000
-TPS_STEPS = [50, 75, 100, 150, 200]
+BASE_URL = "http://magiinterface.udg.edu:3000"
+TPS_STEPS = [50, 75, 100, 150, 200, 300, 400, 500]
 REPEATS = 5          # How many times to repeat each test for averaging
-COOLDOWN = 3         # Seconds to wait between repeats
-CDF_TARGET_TPS = 5   # TPS to use for CDF graph
+COOLDOWN = 5         # Seconds to wait between repeats
+CDF_TARGET_TPS = 50  # TPS to use for CDF graph (must be in TPS_STEPS)
 MAX_WORKERS = 500
-
-# --- Pre-resolve DNS once to avoid DNS saturation under load ---
-try:
-    RESOLVED_IP = socket.gethostbyname(HOSTNAME)
-    BASE_URL = f"http://{RESOLVED_IP}:{PORT}"
-    print(f"DNS pre-resolved: {HOSTNAME} → {RESOLVED_IP}")
-except socket.gaierror:
-    print(f"WARNING: Could not resolve {HOSTNAME}, using hostname directly")
-    BASE_URL = f"http://{HOSTNAME}:{PORT}"
-    RESOLVED_IP = None
 
 # --- Shared session with connection pooling and retries ---
 def create_session():
     s = requests.Session()
-    # Always send Host header so the server recognizes the request
-    s.headers.update({"Host": f"{HOSTNAME}:{PORT}"})
-    # Retry on connection errors (not on status codes)
-    retry = Retry(total=3, backoff_factor=0.3, status_forcelist=[])
+    # Retry on connection errors (includes DNS failures)
+    retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[])
     adapter = HTTPAdapter(max_retries=retry, pool_connections=100, pool_maxsize=200)
     s.mount("http://", adapter)
     return s
@@ -147,7 +134,7 @@ def run_load_test(num_requests, public_key, private_key):
         
         # Launch all requests at once
         for i in range(num_requests):
-            msg = f"Benchmark_{num_requests}_{i}_{random.randint(0, 100000)}"
+            msg = f"Benchmark_{uuid.uuid4().hex[:12]}"
             futures.append(executor.submit(certify_string_measured, public_key, private_key, msg))
         
         print(f"  → {num_requests} requests lanzadas, esperando respuestas...")
@@ -204,9 +191,9 @@ def main():
         b64_cred = base64.b64encode(cred.encode("utf-8")).decode("utf-8")
         
         try:
-             resp = requests.post(f"{BASE_URL}/userVerified/add-user", 
+             resp = SESSION.post(f"{BASE_URL}/userVerified/add-user", 
                            headers={"Content-Type": "application/json", "Authorization": f"Basic {b64_cred}"},
-                           json={"userAddress": pub}, timeout=10)
+                           json={"userAddress": pub}, timeout=120)
              
              if resp.status_code == 200 or resp.status_code == 201:
                  print("User registered successfully.")
@@ -235,6 +222,14 @@ def main():
     all_latencies_for_cdf = [] # List of latencies from a specific run
 
     print(f"\n--- Starting Benchmark (x{REPEATS} repeats, {COOLDOWN}s cooldown) ---\n")
+
+    # Warmup: send a few requests to warm up connections, server JIT, and nonce cache
+    print("🔥 Warmup: sending 5 requests to warm up the server...")
+    warmup_results = run_load_test(5, pub, pk)
+    warmup_ok = sum(1 for r in warmup_results if r.get("success"))
+    print(f"🔥 Warmup done: {warmup_ok}/5 OK")
+    time.sleep(COOLDOWN)
+    print()
 
     for tps in TPS_STEPS:
         run_latencies = []

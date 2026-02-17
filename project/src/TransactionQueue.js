@@ -31,7 +31,7 @@ class TransactionQueue {
     this.provider = provider;
     this.maxRetries = options.maxRetries || 5;
     this.retryDelay = options.retryDelay || 1500;
-    this.confirmTimeout = options.confirmTimeout || 90000;
+    this.confirmTimeout = options.confirmTimeout || 120000;
     this.signerAddress = signer.address;
 
     this._nextNonce = null;
@@ -150,44 +150,35 @@ class TransactionQueue {
   }
 
   /**
-   * Send a transaction and wait for confirmation WITH TIMEOUT.
-   * For /certify - returns full receipt info.
+   * Send a transaction and wait for confirmation using POLLING.
+   * More reliable than tx.wait() under high concurrency because
+   * it doesn't depend on provider event notifications.
    */
   async sendAndWait(txFunction) {
     const { tx } = await this.send(txFunction);
-    console.log(`[TxQueue] ⏳ Esperando confirmación de tx: ${tx.hash} (timeout: ${this.confirmTimeout}ms)...`);
+    console.log(`[TxQueue] ⏳ Esperando confirmación de tx: ${tx.hash} (timeout: ${this.confirmTimeout}ms, polling)...`);
     const waitStart = Date.now();
+    const POLL_INTERVAL = 2000; // 2s = block time
 
-    try {
-      const receipt = await withTimeout(
-        tx.wait(),
-        this.confirmTimeout,
-        `confirmación tx ${tx.hash}`
-      );
-      const confirmMs = Date.now() - waitStart;
-      console.log(`[TxQueue] ✅ Tx confirmada: ${tx.hash} | Block: ${receipt.blockNumber} | Gas: ${receipt.gasUsed.toString()} | Confirmación: ${confirmMs}ms`);
-      return { tx, receipt };
-    } catch (error) {
-      const elapsedMs = Date.now() - waitStart;
-      console.warn(`[TxQueue] ⏰ tx.wait() falló tras ${elapsedMs}ms para ${tx.hash}: ${error.message}`);
-
-      // Fallback: query receipt manually — tx might have been mined but tx.wait() missed it
-      console.log(`[TxQueue] 🔍 Verificando receipt manualmente para ${tx.hash}...`);
+    while (Date.now() - waitStart < this.confirmTimeout) {
       try {
         const receipt = await this.provider.getTransactionReceipt(tx.hash);
         if (receipt && receipt.blockNumber) {
-          console.log(`[TxQueue] ✅ Tx SÍ fue minada (fallback): ${tx.hash} | Block: ${receipt.blockNumber} | Gas: ${receipt.gasUsed.toString()}`);
+          const confirmMs = Date.now() - waitStart;
+          console.log(`[TxQueue] ✅ Tx confirmada: ${tx.hash} | Block: ${receipt.blockNumber} | Gas: ${receipt.gasUsed.toString()} | Confirmación: ${confirmMs}ms`);
           return { tx, receipt };
         }
-      } catch (fallbackErr) {
-        console.warn(`[TxQueue] ⚠️ Fallback getTransactionReceipt falló: ${fallbackErr.message}`);
+      } catch (pollErr) {
+        console.warn(`[TxQueue] ⚠️ Poll error para ${tx.hash}: ${pollErr.message}`);
       }
-
-      // If we still don't have receipt, reset nonce and fail
-      console.error(`[TxQueue] ❌ Tx ${tx.hash} NO confirmada tras ${elapsedMs}ms ni en fallback`);
-      this._nextNonce = null;
-      throw error;
+      await sleep(POLL_INTERVAL);
     }
+
+    // Timeout reached — tx was not confirmed
+    const elapsedMs = Date.now() - waitStart;
+    console.error(`[TxQueue] ❌ Tx ${tx.hash} NO confirmada tras ${elapsedMs}ms de polling`);
+    this._nextNonce = null;
+    throw new Error(`Timeout de ${this.confirmTimeout}ms esperando: confirmación tx ${tx.hash}`);
   }
 
   /**
