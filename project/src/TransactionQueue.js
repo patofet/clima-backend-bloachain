@@ -31,7 +31,7 @@ class TransactionQueue {
     this.provider = provider;
     this.maxRetries = options.maxRetries || 5;
     this.retryDelay = options.retryDelay || 1500;
-    this.confirmTimeout = options.confirmTimeout || 60000;
+    this.confirmTimeout = options.confirmTimeout || 90000;
     this.signerAddress = signer.address;
 
     this._nextNonce = null;
@@ -91,6 +91,20 @@ class TransactionQueue {
         const tx = await txFunction({ nonce });
         const sendMs = Date.now() - sendStart;
 
+        // Guard: ethers can return null under heavy load if tx drops from mempool
+        if (!tx || !tx.hash) {
+          this._nextNonce = null;
+          this._errorCount++;
+          release();
+          attempt++;
+          console.warn(`[TxQueue] ⚠️ Tx #${txId} | Intento ${attempt}/${this.maxRetries} | tx response es null, reintentando...`);
+          if (attempt >= this.maxRetries) {
+            throw new Error(`Tx response null tras ${this.maxRetries} intentos`);
+          }
+          await sleep(this.retryDelay);
+          continue;
+        }
+
         this._nextNonce = nonce + 1;
         const totalMs = Date.now() - queuedAt;
         console.log(`[TxQueue] ✅ Tx #${txId} enviada OK | Hash: ${tx.hash} | Nonce: ${nonce} | Envío: ${sendMs}ms | Total: ${totalMs}ms`);
@@ -106,25 +120,26 @@ class TransactionQueue {
 
         attempt++;
         const isNonce = this._isNonceError(error);
-        const errorType = isNonce ? "NONCE" : error.code === "CALL_EXCEPTION" ? "REVERT" : "UNKNOWN";
+        const isRevert = error.code === "CALL_EXCEPTION";
+        const errorType = isNonce ? "NONCE" : isRevert ? "REVERT" : "UNKNOWN";
         console.error(`[TxQueue] ❌ Tx #${txId} | Intento ${attempt}/${this.maxRetries} | Tipo: ${errorType} | Nonce era: ${prevNonce}`);
         console.error(`[TxQueue] ❌ Error: ${error.message}`);
         if (error.code) console.error(`[TxQueue] ❌ Code: ${error.code} | Reason: ${error.reason || "N/A"}`);
 
-        if (isNonce) {
+        if (isNonce || isRevert) {
           if (attempt >= this.maxRetries) {
-            console.error(`[TxQueue] 💀 Tx #${txId} | Agotados ${this.maxRetries} reintentos por error de nonce`);
-            throw new Error(`Error de nonce persistente tras ${this.maxRetries} reintentos: ${error.message}`);
+            console.error(`[TxQueue] 💀 Tx #${txId} | Agotados ${this.maxRetries} reintentos por error de ${errorType}`);
+            const err = new Error(isRevert
+              ? `Transacción revertida on-chain: ${error.message}`
+              : `Error de nonce persistente tras ${this.maxRetries} reintentos: ${error.message}`);
+            err.code = error.code;
+            err.reason = error.reason;
+            throw err;
           }
-          console.warn(`[TxQueue] 🔄 Tx #${txId} | Esperando ${this.retryDelay}ms antes de reintentar con nonce fresco...`);
-          await sleep(this.retryDelay);
+          const delay = isRevert ? this.retryDelay * 2 : this.retryDelay;
+          console.warn(`[TxQueue] 🔄 Tx #${txId} | Esperando ${delay}ms antes de reintentar (${errorType})...`);
+          await sleep(delay);
           continue;
-        } else if (error.code === "CALL_EXCEPTION") {
-          console.error(`[TxQueue] 🚫 Tx #${txId} | Transacción revertida on-chain, NO se reintenta`);
-          const err = new Error(`Transacción revertida on-chain: ${error.message}`);
-          err.code = error.code;
-          err.reason = error.reason;
-          throw err;
         } else {
           console.error(`[TxQueue] 💥 Tx #${txId} | Error desconocido, NO se reintenta`);
           throw error;
@@ -154,8 +169,22 @@ class TransactionQueue {
       return { tx, receipt };
     } catch (error) {
       const elapsedMs = Date.now() - waitStart;
-      console.error(`[TxQueue] ⏰ tx.wait() falló tras ${elapsedMs}ms para ${tx.hash}: ${error.message}`);
-      // Reset nonce since we don't know if the tx was mined or not
+      console.warn(`[TxQueue] ⏰ tx.wait() falló tras ${elapsedMs}ms para ${tx.hash}: ${error.message}`);
+
+      // Fallback: query receipt manually — tx might have been mined but tx.wait() missed it
+      console.log(`[TxQueue] 🔍 Verificando receipt manualmente para ${tx.hash}...`);
+      try {
+        const receipt = await this.provider.getTransactionReceipt(tx.hash);
+        if (receipt && receipt.blockNumber) {
+          console.log(`[TxQueue] ✅ Tx SÍ fue minada (fallback): ${tx.hash} | Block: ${receipt.blockNumber} | Gas: ${receipt.gasUsed.toString()}`);
+          return { tx, receipt };
+        }
+      } catch (fallbackErr) {
+        console.warn(`[TxQueue] ⚠️ Fallback getTransactionReceipt falló: ${fallbackErr.message}`);
+      }
+
+      // If we still don't have receipt, reset nonce and fail
+      console.error(`[TxQueue] ❌ Tx ${tx.hash} NO confirmada tras ${elapsedMs}ms ni en fallback`);
       this._nextNonce = null;
       throw error;
     }

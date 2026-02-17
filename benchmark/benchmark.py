@@ -1,9 +1,12 @@
 import os
 import sha3
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import base64
 import random
 import time
+import socket
 import concurrent.futures
 import statistics
 import numpy as np
@@ -11,12 +14,36 @@ import threading
 from eth_keys.main import PrivateKey
 
 # --- Configuration ---
-BASE_URL = "http://magiinterface.udg.edu:3000"
-TPS_STEPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-REPEATS = 3          # How many times to repeat each test for averaging
+HOSTNAME = "magiinterface.udg.edu"
+PORT = 3000
+TPS_STEPS = [50, 75, 100, 150, 200]
+REPEATS = 5          # How many times to repeat each test for averaging
 COOLDOWN = 3         # Seconds to wait between repeats
 CDF_TARGET_TPS = 5   # TPS to use for CDF graph
-MAX_WORKERS = 500 # Increased to handle high latency at high TPS (50 TPS * 6s latency = 300+ workers needed)
+MAX_WORKERS = 500
+
+# --- Pre-resolve DNS once to avoid DNS saturation under load ---
+try:
+    RESOLVED_IP = socket.gethostbyname(HOSTNAME)
+    BASE_URL = f"http://{RESOLVED_IP}:{PORT}"
+    print(f"DNS pre-resolved: {HOSTNAME} → {RESOLVED_IP}")
+except socket.gaierror:
+    print(f"WARNING: Could not resolve {HOSTNAME}, using hostname directly")
+    BASE_URL = f"http://{HOSTNAME}:{PORT}"
+    RESOLVED_IP = None
+
+# --- Shared session with connection pooling and retries ---
+def create_session():
+    s = requests.Session()
+    # Always send Host header so the server recognizes the request
+    s.headers.update({"Host": f"{HOSTNAME}:{PORT}"})
+    # Retry on connection errors (not on status codes)
+    retry = Retry(total=3, backoff_factor=0.3, status_forcelist=[])
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=100, pool_maxsize=200)
+    s.mount("http://", adapter)
+    return s
+
+SESSION = create_session()
 
 # --- Helper Functions (copied and adapted from main.py) ---
 
@@ -30,7 +57,7 @@ def generar_claves_ethereum(semilla_texto: str) -> dict:
 def get_login_hash_and_sign(public_address: str, private_key: str, message: str) -> dict:
     try:
         login_url = f"{BASE_URL}/login?address={public_address}&message={message}"
-        response_login = requests.get(login_url, timeout=5)
+        response_login = SESSION.get(login_url, timeout=5)
         response_login.raise_for_status()
         login_data = response_login.json()
         encoded_message = login_data.get("encodedMessage")
@@ -93,7 +120,7 @@ def certify_string_measured(public_address: str, private_key: str, message: str)
         headers = { "Content-Type": "application/json", "Authorization": f"Basic {credenciales_base64}" }
         data = { "certifiedString": message, "description": message }
         
-        response_certify = requests.post(certify_url, headers=headers, json=data, timeout=120)
+        response_certify = SESSION.post(certify_url, headers=headers, json=data, timeout=120)
         end_time = time.time()
         
         if response_certify.status_code == 200 or response_certify.status_code == 201:
@@ -258,8 +285,8 @@ def main():
         if all_errors:
             error_counts = {}
             for reason in all_errors:
-                if isinstance(reason, str) and len(reason) > 120:
-                    reason = reason[:120] + "..."
+                #if isinstance(reason, str) and len(reason) > 120:
+                #    reason = reason[:120] + "..."
                 error_counts[reason] = error_counts.get(reason, 0) + 1
             print(f"  ❌ Errores totales ({len(all_errors)} en {REPEATS} runs):")
             for reason, count in sorted(error_counts.items(), key=lambda x: -x[1]):
@@ -268,36 +295,112 @@ def main():
         print()
         time.sleep(COOLDOWN)  # Cooldown between different TPS steps
 
-    # --- Output Generation ---
+    # --- LaTeX Output Generation ---
 
-    print("\n\n=== 1. Hockey Stick Graph (Throughput vs Latency) ===")
-    print("X-Axis: TPS, Y-Axis: Latency (s)")
-    hockey_str = " ".join([f"({x}, {y:.4f})" for x, y in hockey_stick_data])
-    print(hockey_str)
+    print("\n\n" + "="*80)
+    print("  COPY-PASTE LATEX CODE FOR OVERLEAF")
+    print("="*80)
 
-    print("\n=== 2. CDF of Latency (at TPS={}) ===".format(CDF_TARGET_TPS))
-    print("X-Axis: Latency (s), Y-Axis: Percentile (0-1)")
+    # ─── 1. Hockey Stick Graph ───
+    coords_hockey = "\n    ".join([f"({x}, {y:.4f})" for x, y in hockey_stick_data])
+    max_tps = max(x for x, _ in hockey_stick_data)
+    max_lat = max(y for _, y in hockey_stick_data)
+    lat_ceil = int(max_lat) + 2
+
+    print(f"""
+% ═══════════════════════════════════════════════════════════
+% 1. HOCKEY STICK GRAPH (Throughput vs Latency)
+% ═══════════════════════════════════════════════════════════
+\\begin{{tikzpicture}}
+\\begin{{axis}}[
+    title={{Throughput vs Transaction Latency}},
+    xlabel={{Concurrent Transactions}},
+    ylabel={{Average Latency (seconds)}},
+    xmin=0, xmax={max_tps + 5},
+    ymin=0, ymax={lat_ceil},
+    grid=both,
+    width=10cm, height=7cm,
+    legend pos=north west
+]
+\\addplot[color=blue, mark=*, thick] coordinates {{
+    {coords_hockey}
+}};
+\\end{{axis}}
+\\end{{tikzpicture}}""")
+
+    # ─── 2. CDF Graph ───
+    print(f"\n% ═══════════════════════════════════════════════════════════")
+    print(f"% 2. CDF OF LATENCY (N={CDF_TARGET_TPS} concurrent transactions, {REPEATS} runs)")
+    print(f"% ═══════════════════════════════════════════════════════════")
     if all_latencies_for_cdf:
         sorted_lat = sorted(all_latencies_for_cdf)
-        # Generate ~20 points for smooth curve or just dump all
-        # Overleaf usually wants a reasonable number of points.
-        # Let's pick percentiles: 0, 5, 10, ... 90, 95, 99, 100
+        n = len(sorted_lat)
+
+        # Generate CDF points: for each latency, CDF = rank / total
         percentiles = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
         cdf_points = []
         for p in percentiles:
-            idx = int((p / 100) * (len(sorted_lat) - 1))
+            idx = min(int((p / 100) * (n - 1)), n - 1)
             val = sorted_lat[idx]
-            cdf_points.append((val, p/100))
-        
-        cdf_str = " ".join([f"({x:.4f}, {y})" for x, y in cdf_points])
-        print(cdf_str)
-    else:
-        print("No successful transactions to generate CDF.")
+            cdf_points.append((val, p / 100))
 
-    print("\n=== 3. Transaction Success Rate ===")
-    print("X-Axis: TPS, Y-Axis: Success Rate (%)")
-    success_str = " ".join([f"({x}, {y:.2f})" for x, y in success_rate_data])
-    print(success_str)
+        coords_cdf = "\n    ".join([f"({x:.4f}, {y:.2f})" for x, y in cdf_points])
+
+        # Calculate P90 value for the dotted line annotation
+        p90_idx = min(int(0.90 * (n - 1)), n - 1)
+        p90_val = sorted_lat[p90_idx]
+        xmax_cdf = max(x for x, _ in cdf_points) + 1
+
+        print(f"""\\begin{{tikzpicture}}
+\\begin{{axis}}[
+    title={{Transaction Finality Consistency (N={CDF_TARGET_TPS})}},
+    xlabel={{Latency (seconds)}},
+    ylabel={{CDF (Cumulative Probability)}},
+    xmin=0, xmax={xmax_cdf:.1f},
+    ymin=0, ymax=1.1,
+    ytick={{0, 0.2, 0.4, 0.6, 0.8, 1.0}},
+    grid=both,
+    width=10cm, height=7cm
+]
+\\addplot[color=green!60!black, ultra thick, smooth] coordinates {{
+    {coords_cdf}
+}};
+\\draw[gray, dotted, thick] (axis cs:0,0.9) -- (axis cs:{p90_val:.2f},0.9) -- (axis cs:{p90_val:.2f},0);
+\\node at (axis cs:{p90_val + 0.5:.2f}, 0.8) {{\\small 90\\% at {p90_val:.1f}s}};
+\\end{{axis}}
+\\end{{tikzpicture}}""")
+    else:
+        print("% No successful transactions at CDF_TARGET_TPS to generate CDF.")
+
+    # ─── 3. Success Rate Graph ───
+    coords_sr = "\n    ".join([f"({x}, {y:.1f})" for x, y in success_rate_data])
+    max_sr_tps = max(x for x, _ in success_rate_data)
+    min_sr = min(y for _, y in success_rate_data)
+    ymin_sr = max(0, int(min_sr) - 5)
+
+    print(f"""
+% ═══════════════════════════════════════════════════════════
+% 3. TRANSACTION SUCCESS RATE UNDER LOAD
+% ═══════════════════════════════════════════════════════════
+\\begin{{tikzpicture}}
+\\begin{{axis}}[
+    title={{Scalability and Fault Tolerance}},
+    xlabel={{Concurrent Transactions}},
+    ylabel={{Success Rate (\\%)}},
+    xmin=0, xmax={max_sr_tps + 5},
+    ymin={ymin_sr}, ymax=100.5,
+    grid=major,
+    width=10cm, height=7cm
+]
+\\addplot[color=red, mark=square*, thick] coordinates {{
+    {coords_sr}
+}};
+\\end{{axis}}
+\\end{{tikzpicture}}""")
+
+    print("\n" + "="*80)
+    print(f"  Benchmark completado: {len(TPS_STEPS)} pasos x {REPEATS} repeticiones")
+    print("="*80)
 
 if __name__ == "__main__":
     main()
