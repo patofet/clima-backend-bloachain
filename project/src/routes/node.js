@@ -30,6 +30,7 @@ async function getNodeStatus(node) {
       nodeTimestamp: nodeTimestamp,
     };
   } catch (error) {
+    console.error(`Error al obtener el estado del nodo ${node.name}:`, error);
     return {
       name: node.name,
       url: node.url,

@@ -15,18 +15,26 @@ from eth_keys.main import PrivateKey
 
 # --- Configuration ---
 BASE_URL = "http://magiinterface.udg.edu:3000"
-TPS_STEPS = [50, 75, 100, 150, 200, 300, 400, 500]
-REPEATS = 5          # How many times to repeat each test for averaging
+TPS_STEPS = [10000]
+REPEATS = 10          # How many times to repeat each test for averaging
 COOLDOWN = 5         # Seconds to wait between repeats
 CDF_TARGET_TPS = 50  # TPS to use for CDF graph (must be in TPS_STEPS)
-MAX_WORKERS = 500
+SLA_LATENCY_THRESHOLD = 30  # seconds — txs slower than this count as SLA failures
+MAX_WORKERS = 1500
 
 # --- Shared session with connection pooling and retries ---
 def create_session():
     s = requests.Session()
-    # Retry on connection errors (includes DNS failures)
-    retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[])
-    adapter = HTTPAdapter(max_retries=retry, pool_connections=100, pool_maxsize=200)
+    # Retry on connection errors AND read timeouts
+    retry = Retry(
+        total=3,
+        backoff_factor=1,          # 1s, 2s, 4s between retries
+        connect=3,                  # retry on connection errors
+        read=3,                     # retry on read timeouts
+        status_forcelist=[502, 503, 504],
+        allowed_methods=["GET", "POST"],  # allow POST retries too
+    )
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=200, pool_maxsize=1000)
     s.mount("http://", adapter)
     return s
 
@@ -44,7 +52,7 @@ def generar_claves_ethereum(semilla_texto: str) -> dict:
 def get_login_hash_and_sign(public_address: str, private_key: str, message: str) -> dict:
     try:
         login_url = f"{BASE_URL}/login?address={public_address}&message={message}"
-        response_login = SESSION.get(login_url, timeout=5)
+        response_login = SESSION.get(login_url, timeout=(30, 120))
         response_login.raise_for_status()
         login_data = response_login.json()
         encoded_message = login_data.get("encodedMessage")
@@ -217,8 +225,10 @@ def main():
         return
 
     # Data Stores
-    hockey_stick_data = [] # (TPS, Avg Latency)
+    hockey_stick_data = [] # (TPS, Median Latency)
     success_rate_data = [] # (TPS, Success Rate %)
+    sla_rate_data = []     # (TPS, SLA-compliant Rate %)
+    effective_tps_data = [] # (TPS, Effective TPS)
     all_latencies_for_cdf = [] # List of latencies from a specific run
 
     print(f"\n--- Starting Benchmark (x{REPEATS} repeats, {COOLDOWN}s cooldown) ---\n")
@@ -237,6 +247,9 @@ def main():
         all_errors = []
         cdf_latencies = []
 
+        run_sla_rates = []
+        run_effective_tps = []
+
         for run in range(1, REPEATS + 1):
             start_time = time.time()
             data = run_load_test(tps, pub, pk)
@@ -250,8 +263,17 @@ def main():
             avg_lat = statistics.mean(latencies) if latencies else 0
             sr = (success_count / total) * 100 if total > 0 else 0
 
+            # SLA: count txs that succeeded AND completed within threshold
+            sla_ok = sum(1 for d in data if d['success'] and d['latency'] <= SLA_LATENCY_THRESHOLD)
+            sla_rate = (sla_ok / total) * 100 if total > 0 else 0
+
+            # Effective TPS: successful txs within SLA / wall clock time
+            eff_tps = sla_ok / total_time if total_time > 0 else 0
+
             run_latencies.append(avg_lat)
             run_success_rates.append(sr)
+            run_sla_rates.append(sla_rate)
+            run_effective_tps.append(eff_tps)
             cdf_latencies.extend(latencies)
 
             # Collect errors
@@ -259,29 +281,31 @@ def main():
                 if not d['success']:
                     all_errors.append(d.get('error', f"HTTP {d.get('status_code', '?')}"))
 
-            print(f"  Run {run}/{REPEATS}: Latency={avg_lat:.4f}s | SR={sr:.0f}% | OK={success_count}/{total} | {total_time:.1f}s")
+            print(f"  Run {run}/{REPEATS}: Latency={avg_lat:.4f}s | SR={sr:.0f}% | SLA({SLA_LATENCY_THRESHOLD}s)={sla_rate:.0f}% | EffTPS={eff_tps:.1f} | {total_time:.1f}s")
 
             if run < REPEATS:
                 time.sleep(COOLDOWN)
 
-        # Average across all runs
-        avg_latency = statistics.mean(run_latencies) if run_latencies else 0
-        avg_sr = statistics.mean(run_success_rates) if run_success_rates else 0
+        # Median across all runs (robust against outliers)
+        med_latency = statistics.median(run_latencies) if run_latencies else 0
+        med_sr = statistics.median(run_success_rates) if run_success_rates else 0
+        med_sla = statistics.median(run_sla_rates) if run_sla_rates else 0
+        med_eff_tps = statistics.median(run_effective_tps) if run_effective_tps else 0
 
-        hockey_stick_data.append((tps, avg_latency))
-        success_rate_data.append((tps, avg_sr))
+        hockey_stick_data.append((tps, med_latency))
+        success_rate_data.append((tps, med_sr))
+        sla_rate_data.append((tps, med_sla))
+        effective_tps_data.append((tps, med_eff_tps))
 
         if tps == CDF_TARGET_TPS:
             all_latencies_for_cdf = cdf_latencies
 
-        print(f"▶ N={tps} | Avg Latency: {avg_latency:.4f}s | Avg Success Rate: {avg_sr:.1f}%")
+        print(f"▶ N={tps} | Median Latency: {med_latency:.4f}s | SR: {med_sr:.1f}% | SLA({SLA_LATENCY_THRESHOLD}s): {med_sla:.1f}% | Eff TPS: {med_eff_tps:.1f}")
 
         # Error breakdown
         if all_errors:
             error_counts = {}
             for reason in all_errors:
-                #if isinstance(reason, str) and len(reason) > 120:
-                #    reason = reason[:120] + "..."
                 error_counts[reason] = error_counts.get(reason, 0) + 1
             print(f"  ❌ Errores totales ({len(all_errors)} en {REPEATS} runs):")
             for reason, count in sorted(error_counts.items(), key=lambda x: -x[1]):
@@ -389,6 +413,59 @@ def main():
 ]
 \\addplot[color=red, mark=square*, thick] coordinates {{
     {coords_sr}
+}};
+\\end{{axis}}
+\\end{{tikzpicture}}""")
+
+    # ─── 4. SLA Compliance Rate ───
+    coords_sla = "\n    ".join([f"({x}, {y:.1f})" for x, y in sla_rate_data])
+    max_sla_tps = max(x for x, _ in sla_rate_data)
+    min_sla = min(y for _, y in sla_rate_data)
+    ymin_sla = max(0, int(min_sla) - 5)
+
+    print(f"""
+% ═══════════════════════════════════════════════════════════
+% 4. SLA COMPLIANCE (Latency ≤ {SLA_LATENCY_THRESHOLD}s = success)
+% ═══════════════════════════════════════════════════════════
+\\begin{{tikzpicture}}
+\\begin{{axis}}[
+    title={{SLA Compliance (latency $\\leq$ {SLA_LATENCY_THRESHOLD}s)}},
+    xlabel={{Concurrent Transactions}},
+    ylabel={{SLA Compliance (\\%)}},
+    xmin=0, xmax={max_sla_tps + 5},
+    ymin={ymin_sla}, ymax=100.5,
+    grid=major,
+    width=10cm, height=7cm
+]
+\\addplot[color=orange, mark=triangle*, thick] coordinates {{
+    {coords_sla}
+}};
+\\draw[gray, dashed] (axis cs:0,95) -- (axis cs:{max_sla_tps + 5},95);
+\\node at (axis cs:{max_sla_tps * 0.7:.0f}, 93) {{\\small SLA Target: 95\\%}};
+\\end{{axis}}
+\\end{{tikzpicture}}""")
+
+    # ─── 5. Effective TPS ───
+    coords_etps = "\n    ".join([f"({x}, {y:.1f})" for x, y in effective_tps_data])
+    max_etps_x = max(x for x, _ in effective_tps_data)
+    max_etps_y = max(y for _, y in effective_tps_data)
+
+    print(f"""
+% ═══════════════════════════════════════════════════════════
+% 5. EFFECTIVE THROUGHPUT (TPS within SLA)
+% ═══════════════════════════════════════════════════════════
+\\begin{{tikzpicture}}
+\\begin{{axis}}[
+    title={{Effective Throughput (within SLA)}},
+    xlabel={{Concurrent Transactions (requested)}},
+    ylabel={{Effective TPS (within {SLA_LATENCY_THRESHOLD}s)}},
+    xmin=0, xmax={max_etps_x + 5},
+    ymin=0, ymax={int(max_etps_y) + 5},
+    grid=both,
+    width=10cm, height=7cm
+]
+\\addplot[color=purple, mark=diamond*, thick] coordinates {{
+    {coords_etps}
 }};
 \\end{{axis}}
 \\end{{tikzpicture}}""")
