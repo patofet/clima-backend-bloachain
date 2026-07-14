@@ -9,7 +9,6 @@ const { initUsersVerifiedContract } = require("./contracts/UsersVerified");
 
 const createCertificationVerifiedRouter = require("./routes/certificationVerified");
 const loginRouter = require("./routes/login");
-const drissaRouter = require("./routes/drissa");
 const createUserRouter = require("./routes/userVerified");
 const nodeStatus = require("./routes/node");
 
@@ -68,8 +67,6 @@ try {
   console.log("🛣️  Router de usuarios montado en /userVerified");
   app.use("/login", loginRouter);
   console.log("🛣️  Router de login montado en /login");
-  app.use("/drissa", drissaRouter);
-  console.log("🛣️  Router de drissa montado en /drissa");
   app.use("/node", nodeStatus);
   console.log("🛣️  Router de nodeStatus montado en /node");
 } catch (error) {

@@ -38,6 +38,21 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 RPC principal local esperado: `http://localhost:8545`
 
+Nodos que deben quedar levantados en local:
+
+- `besu-validator1` (RPC: 8545, WS: 8546, P2P: 30303)
+- `besu-validator2` (P2P: 30304)
+- `besu-validator3` (P2P: 30305)
+
+Comprobaciones recomendadas:
+
+```bash
+docker compose -f docker-compose.dev.yml ps
+docker logs besu-validator1 --tail 50
+docker logs besu-validator2 --tail 50
+docker logs besu-validator3 --tail 50
+```
+
 ## 2) Configurar backend y hardhat
 
 Entrar en el proyecto Node:
@@ -64,6 +79,12 @@ npm run compile
 npm run deploy:local
 ```
 
+Al finalizar el deploy, se genera el archivo con direcciones en:
+
+- `project/ignition/deployments/chain-1714/deployed_addresses.json`
+
+Si ese archivo no existe, el backend no podra inicializar contratos.
+
 ## 4) Arrancar el servidor API
 
 ```bash
@@ -88,6 +109,97 @@ Ejemplo:
 ```bash
 curl http://localhost:3000/node/api/estado-red
 ```
+
+## Autenticacion para endpoints protegidos
+
+Algunas rutas usan `Authorization: Basic ...` con este formato:
+
+`address/timestamp/message:firma`
+
+Pasos:
+
+1. Pedir hash al backend:
+
+```bash
+curl "http://localhost:3000/login?address=0xTU_DIRECCION&message=MI_MENSAJE"
+```
+
+Respuesta esperada: `timestamp`, `encodedMessage` y `hash`.
+
+2. Firmar el `hash` con la clave privada del usuario (ejemplo con Node):
+
+```bash
+export USER_PK=0xTU_PRIVATE_KEY
+export HASH=pega_aqui_el_hash
+node -e "const {Wallet}=require('ethers'); const w=new Wallet(process.env.USER_PK); w.signMessage(process.env.HASH).then(console.log)"
+```
+
+3. Construir el header Basic:
+
+```bash
+export ADDRESS=0xTU_DIRECCION
+export TIMESTAMP=pega_aqui_timestamp
+export MESSAGE=MI_MENSAJE
+export SIGNED=0xFIRMA_GENERADA
+export AUTH=$(printf "%s" "$ADDRESS/$TIMESTAMP/$MESSAGE:$SIGNED" | base64)
+```
+
+4. Usar `Authorization: Basic $AUTH` en llamadas protegidas.
+
+## Registrar usuario nuevo en la comunidad
+
+Endpoint:
+
+- `POST /userVerified/add-user`
+
+Ejemplo:
+
+```bash
+curl -X POST "http://localhost:3000/userVerified/add-user" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Basic $AUTH" \
+  -d '{
+    "userAddress": "0xDIRECCION_DEL_USUARIO_A_REGISTRAR"
+  }'
+```
+
+## Registrar nueva medicion
+
+Endpoint:
+
+- `POST /certificationVerified/certify`
+
+Importante: el campo `certifiedString` debe coincidir con el `message` usado en la autenticacion.
+
+Ejemplo:
+
+```bash
+curl -X POST "http://localhost:3000/certificationVerified/certify" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Basic $AUTH" \
+  -d '{
+    "certifiedString": "MI_MENSAJE",
+    "description": "Nueva medicion de temperatura 26.4C en Girona"
+  }'
+```
+
+## Lista completa de endpoints
+
+- `GET /login?address=...&message=...`
+- `POST /login/signMessage`
+- `POST /login/testAuthenticate`
+- `POST /login/testHash`
+- `POST /userVerified/add-user`
+- `DELETE /userVerified/remove-user`
+- `POST /userVerified/add-petition`
+- `GET /userVerified/pending-user/:index`
+- `GET /userVerified/is-verified/:userAddress`
+- `POST /certificationVerified/certify`
+- `POST /certificationVerified/certify-async`
+- `GET /certificationVerified/getCertificate/:TransactionHash`
+- `GET /certificationVerified/getCertificateData/:TransactionHash`
+- `GET /node/estado-red`
+- `GET /node/api/estado-red`
 
 ## Flujo completo (copy/paste)
 
@@ -137,8 +249,3 @@ npm run deploy:prod
   - Revisa `PRIVATE_KEY` y que tenga fondos en la red local.
 - Cambios de contratos no reflejados:
   - Ejecuta `npm run compile` y luego `npm run deploy:local`.
-
-## Nota de seguridad
-
-No publiques claves privadas reales en GitHub.
-Si alguna clave se expuso, rotala inmediatamente y usa una nueva.
