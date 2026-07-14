@@ -1,19 +1,19 @@
 # Clima Backend Blockchain
 
-Backend API + despliegue de contratos para una red Hyperledger Besu IBFT con Hardhat.
+Backend API + smart contract deployment for a Hyperledger Besu IBFT network using Hardhat.
 
-## Arquitectura rapida
+## Quick architecture
 
-- Red blockchain local con 3 nodos Besu via Docker Compose.
-- API Node.js/Express en `project/`.
-- Contratos Solidity desplegados con Hardhat Ignition (chainId `1714`).
+- Local blockchain network with 3 Besu validator nodes via Docker Compose.
+- Node.js/Express API in `project/`.
+- Solidity contracts deployed with Hardhat Ignition (chainId `1714`).
 
-## Requisitos
+## Requirements
 
-- Docker y Docker Compose (`docker compose`)
-- Node.js 18+ y npm
+- Docker and Docker Compose (`docker compose`)
+- Node.js 18+ and npm
 
-Verifica versiones:
+Check versions:
 
 ```bash
 docker --version
@@ -22,29 +22,29 @@ node -v
 npm -v
 ```
 
-## 1) Levantar la red blockchain local
+## 1) Start the local blockchain network
 
-Desde la raiz del repositorio:
+From the repository root:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-Comprobar nodos levantados:
+Check running nodes:
 
 ```bash
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
 
-RPC principal local esperado: `http://localhost:8545`
+Expected primary local RPC endpoint: `http://localhost:8545`
 
-Nodos que deben quedar levantados en local:
+The following nodes should be running locally:
 
 - `besu-validator1` (RPC: 8545, WS: 8546, P2P: 30303)
 - `besu-validator2` (P2P: 30304)
 - `besu-validator3` (P2P: 30305)
 
-Comprobaciones recomendadas:
+Recommended checks:
 
 ```bash
 docker compose -f docker-compose.dev.yml ps
@@ -53,137 +53,139 @@ docker logs besu-validator2 --tail 50
 docker logs besu-validator3 --tail 50
 ```
 
-## 2) Configurar backend y hardhat
+## 2) Configure backend and Hardhat
 
-Entrar en el proyecto Node:
+Go into the Node project:
 
 ```bash
 cd project
 npm install
 ```
 
-Crear archivo de entorno `project/.env`:
+Create the environment file `project/.env`:
 
 ```env
-PRIVATE_KEY=0xTU_PRIVATE_KEY
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY
 JSON_RPC_URL=http://localhost:8545
-# Opcional: varios nodos separados por coma
+# Optional: multiple RPC nodes separated by commas
 # JSON_RPC_URLS=http://localhost:8545,http://localhost:8546
 PORT=3000
 ```
 
-## 3) Compilar y desplegar contratos en local
+## 3) Compile and deploy contracts locally
 
 ```bash
 npm run compile
 npm run deploy:local
 ```
 
-Al finalizar el deploy, se genera el archivo con direcciones en:
+After deployment, the addresses file is generated at:
 
 - `project/ignition/deployments/chain-1714/deployed_addresses.json`
 
-Si ese archivo no existe, el backend no podra inicializar contratos.
+If this file does not exist, the backend cannot initialize contracts.
 
-## 4) Arrancar el servidor API
+## 4) Start the API server
 
 ```bash
 npm run start
 ```
 
-Modo desarrollo:
+Development mode:
 
 ```bash
 npm run dev
 ```
 
-Si todo va bien, la API queda escuchando en `http://localhost:3000`.
+If everything is set up correctly, the API will be available at `http://localhost:3000`.
 
-## Endpoints utiles
+## Useful endpoints
 
-- Estado red (vista): `GET /node/estado-red`
-- Estado red (json): `GET /node/api/estado-red`
+Note: some endpoint paths are intentionally kept in Spanish for backward compatibility.
 
-Ejemplo:
+- Network status (view): `GET /node/estado-red`
+- Network status (JSON): `GET /node/api/estado-red`
+
+Example:
 
 ```bash
 curl http://localhost:3000/node/api/estado-red
 ```
 
-## Autenticacion para endpoints protegidos
+## Authentication for protected endpoints
 
-Algunas rutas usan `Authorization: Basic ...` con este formato:
+Some routes use `Authorization: Basic ...` with this format:
 
-`address/timestamp/message:firma`
+`address/timestamp/message:signature`
 
-Pasos:
+Steps:
 
-1. Pedir hash al backend:
+1. Request the hash from the backend:
 
 ```bash
-curl "http://localhost:3000/login?address=0xTU_DIRECCION&message=MI_MENSAJE"
+curl "http://localhost:3000/login?address=0xYOUR_ADDRESS&message=MY_MESSAGE"
 ```
 
-Respuesta esperada: `timestamp`, `encodedMessage` y `hash`.
+Expected response: `timestamp`, `encodedMessage`, and `hash`.
 
-2. Firmar el `hash` con la clave privada del usuario (ejemplo con Node):
+2. Sign the `hash` with the user's private key (Node example):
 
 ```bash
-export USER_PK=0xTU_PRIVATE_KEY
-export HASH=pega_aqui_el_hash
+export USER_PK=0xYOUR_PRIVATE_KEY
+export HASH=paste_hash_here
 node -e "const {Wallet}=require('ethers'); const w=new Wallet(process.env.USER_PK); w.signMessage(process.env.HASH).then(console.log)"
 ```
 
-3. Construir el header Basic:
+3. Build the Basic header:
 
 ```bash
-export ADDRESS=0xTU_DIRECCION
-export TIMESTAMP=pega_aqui_timestamp
-export MESSAGE=MI_MENSAJE
-export SIGNED=0xFIRMA_GENERADA
+export ADDRESS=0xYOUR_ADDRESS
+export TIMESTAMP=paste_timestamp_here
+export MESSAGE=MY_MESSAGE
+export SIGNED=0xGENERATED_SIGNATURE
 export AUTH=$(printf "%s" "$ADDRESS/$TIMESTAMP/$MESSAGE:$SIGNED" | base64)
 ```
 
-4. Usar `Authorization: Basic $AUTH` en llamadas protegidas.
+4. Use `Authorization: Basic $AUTH` in protected requests.
 
-## Registrar usuario nuevo en la comunidad
+## Register a new user in the community
 
 Endpoint:
 
 - `POST /userVerified/add-user`
 
-Ejemplo:
+Example:
 
 ```bash
 curl -X POST "http://localhost:3000/userVerified/add-user" \
   -H "Content-Type: application/json" \
   -H "Authorization: Basic $AUTH" \
   -d '{
-    "userAddress": "0xDIRECCION_DEL_USUARIO_A_REGISTRAR"
+    "userAddress": "0xUSER_ADDRESS_TO_REGISTER"
   }'
 ```
 
-## Registrar nueva medicion
+## Register a new measurement
 
 Endpoint:
 
 - `POST /certificationVerified/certify`
 
-Importante: el campo `certifiedString` debe coincidir con el `message` usado en la autenticacion.
+Important: `certifiedString` must match the `message` used in authentication.
 
-Ejemplo:
+Example:
 
 ```bash
 curl -X POST "http://localhost:3000/certificationVerified/certify" \
   -H "Content-Type: application/json" \
   -H "Authorization: Basic $AUTH" \
   -d '{
-    "certifiedString": "MI_MENSAJE",
-    "description": "Nueva medicion de temperatura 26.4C en Girona"
+    "certifiedString": "MY_MESSAGE",
+    "description": "New temperature measurement 26.4C in Girona"
   }'
 ```
 
-## Lista completa de endpoints
+## Full endpoint list
 
 - `GET /login?address=...&message=...`
 - `POST /login/signMessage`
@@ -201,38 +203,38 @@ curl -X POST "http://localhost:3000/certificationVerified/certify" \
 - `GET /node/estado-red`
 - `GET /node/api/estado-red`
 
-## Flujo completo (copy/paste)
+## Full workflow (copy/paste)
 
 ```bash
-# desde la raiz
+# from repository root
 docker compose -f docker-compose.dev.yml up -d --build
 
 cd project
 npm install
 
-# crea/edita .env con PRIVATE_KEY y JSON_RPC_URL
+# create/edit .env with PRIVATE_KEY and JSON_RPC_URL
 npm run compile
 npm run deploy:local
 npm run start
 ```
 
-## Parar o reiniciar
+## Stop or restart
 
-Parar red:
+Stop network:
 
 ```bash
 docker compose -f docker-compose.dev.yml down
 ```
 
-Parar red y borrar volumenes/datos locales:
+Stop network and remove local volumes/data:
 
 ```bash
 docker compose -f docker-compose.dev.yml down -v
 ```
 
-## Despliegue contra red remota
+## Deploy to remote network
 
-Existe script para red `production` (definida en `hardhat.config.ts`):
+There is a script for the `production` network (defined in `hardhat.config.ts`):
 
 ```bash
 cd project
@@ -241,11 +243,11 @@ npm run deploy:prod
 
 ## Troubleshooting
 
-- Error `EADDRINUSE` en puerto 3000:
-  - Cambia `PORT` en `.env` o libera el puerto.
-- Error de conexion RPC:
-  - Verifica que Docker este levantado y que `JSON_RPC_URL` sea correcto.
-- Error de firma/transacciones:
-  - Revisa `PRIVATE_KEY` y que tenga fondos en la red local.
-- Cambios de contratos no reflejados:
-  - Ejecuta `npm run compile` y luego `npm run deploy:local`.
+- `EADDRINUSE` on port 3000:
+  - Change `PORT` in `.env` or free the port.
+- RPC connection error:
+  - Verify Docker is running and `JSON_RPC_URL` is correct.
+- Signing/transaction error:
+  - Check `PRIVATE_KEY` and ensure it has funds on the local network.
+- Contract changes not reflected:
+  - Run `npm run compile` and then `npm run deploy:local`.
